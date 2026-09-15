@@ -18,6 +18,7 @@ public class LinuxContainer extends Container {
     private String desktopEnv = DEFAULT_DESKTOP_ENV;
     private String launchCommand = "";
     private String cpuGovernor = DEFAULT_CPU_GOVERNOR;
+    private boolean useChroot = false;
 
     public LinuxContainer(int id) {
         super(id);
@@ -53,6 +54,14 @@ public class LinuxContainer extends Container {
 
     public void setLaunchCommand(String launchCommand) {
         this.launchCommand = launchCommand != null ? launchCommand : "";
+    }
+
+    public boolean getUseChroot() {
+        return useChroot;
+    }
+
+    public void setUseChroot(boolean useChroot) {
+        this.useChroot = useChroot;
     }
 
     public String getCpuGovernor() {
