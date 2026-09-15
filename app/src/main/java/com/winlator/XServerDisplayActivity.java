@@ -395,7 +395,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         environment.addComponent(new NetworkInfoUpdateComponent());
 
         if (audioDriver.equals(AudioDrivers.ALSA)) {
-            envVars.put("ANDROID_ALSA_SERVER", rootPath+UnixSocketConfig.ALSA_SERVER_PATH);
+            envVars.put("ANDROID_ALSA_SERVER", UnixSocketConfig.ALSA_SERVER_PATH);
             envVars.put("ANDROID_ASERVER_USE_SHM", ALSAClient.USE_SHARED_MEMORY ? "true" : "false");
 
             ALSAClient.Options options = ALSAClient.Options.fromKeyValueSet(audioDriverConfig);
@@ -403,7 +403,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
         else if (audioDriver.equals(AudioDrivers.PULSEAUDIO)) {
             PulseAudioComponent pulseAudioComponent = new PulseAudioComponent(UnixSocketConfig.create(rootPath, UnixSocketConfig.PULSE_SERVER_PATH));
-            envVars.put("PULSE_SERVER", rootPath+UnixSocketConfig.PULSE_SERVER_PATH);
+            envVars.put("PULSE_SERVER", UnixSocketConfig.PULSE_SERVER_PATH);
 
             if (!audioDriverConfig.isEmpty()) {
                 envVars.put("PULSE_LATENCY_MSEC", audioDriverConfig.getInt("latencyMillis", AudioDriverConfigDialog.DEFAULT_LATENCY_MILLIS));
@@ -620,7 +620,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             case GraphicsDrivers.VIRGL:
                 envVars.put("GALLIUM_DRIVER", "virpipe");
                 envVars.put("VIRGL_NO_READBACK", "true");
-                envVars.put("VIRGL_SERVER_PATH", rootDir+UnixSocketConfig.VIRGL_SERVER_PATH);
+                envVars.put("VIRGL_SERVER_PATH", UnixSocketConfig.VIRGL_SERVER_PATH);
                 VirGLConfigDialog.setEnvVars(graphicsDriverConfig[1], envVars);
 
                 if (changed) TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "graphics_driver/virgl-"+DefaultVersion.VIRGL+".tzst", rootDir);

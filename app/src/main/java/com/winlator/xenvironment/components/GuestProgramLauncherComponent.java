@@ -82,14 +82,14 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         EnvVars envVars = new EnvVars();
         LocaleHelper.setEnvVars(envVars);
 
-        envVars.put("HOME", rootDir+RootFS.HOME_PATH);
+        envVars.put("HOME", RootFS.HOME_PATH);
         envVars.put("USER", RootFS.USER);
-        envVars.put("TMPDIR", rootDir+"/tmp");
+        envVars.put("TMPDIR", "/tmp");
         envVars.put("DISPLAY", ":0");
-        envVars.put("PATH", rootDir+"/usr/local/bin:"+rootDir+"/usr/bin:"+rootDir+"/bin");
-        envVars.put("LD_LIBRARY_PATH", rootFS.getLibDir().getPath());
+        envVars.put("PATH", "/usr/local/bin:/usr/bin:/bin");
+        envVars.put("LD_LIBRARY_PATH", "/usr/lib");
         
-        envVars.put("ANDROID_SYSVSHM_SERVER", rootDir+UnixSocketConfig.SYSVSHM_SERVER_PATH);
+        envVars.put("ANDROID_SYSVSHM_SERVER", UnixSocketConfig.SYSVSHM_SERVER_PATH);
 
         if (this.envVars != null) envVars.putAll(this.envVars);
 
@@ -97,7 +97,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         if (!shmDir.isDirectory()) shmDir.mkdirs();
 
         boolean useChroot = RootAccessHelper.isRootGranted() && new File(rootDir, "/bin/bash").exists();
-        String command = ProotLauncher.buildCommand(rootDir, guestExecutable, useChroot);
+        String command = ProotLauncher.buildCommand(environment.getContext(), rootDir, guestExecutable, useChroot);
 
         return ProcessHelper.exec(command, envVars, rootDir, (status) -> {
             synchronized (lock) {
