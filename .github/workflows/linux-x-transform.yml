@@ -7,12 +7,17 @@ on:
     paths:
       - 'scripts/**'
 
+permissions:
+  contents: write
+
 jobs:
   transform:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run transformation script
         run: |
