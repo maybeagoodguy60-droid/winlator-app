@@ -35,9 +35,7 @@ import androidx.fragment.app.FragmentManager;
 import androidx.preference.PreferenceManager;
 
 import com.google.android.material.navigation.NavigationView;
-import com.winlator.box64.Box64EditPresetDialog;
-import com.winlator.box64.Box64Preset;
-import com.winlator.box64.Box64PresetManager;
+
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.contentdialog.ContentDialog;
@@ -52,13 +50,12 @@ import com.winlator.core.GeneralComponents;
 import com.winlator.core.LocaleHelper;
 import com.winlator.core.PreloaderDialog;
 import com.winlator.core.StringUtils;
-import com.winlator.core.WineInfo;
-import com.winlator.core.WineInstaller;
+
 import com.winlator.services.NotificationUtils;
 import com.winlator.widget.ColorPickerView;
 import com.winlator.widget.LogView;
 import com.winlator.widget.SeekBar;
-import com.winlator.winhandler.GamepadHandler;
+
 import com.winlator.xenvironment.RootFS;
 import com.winlator.xenvironment.RootFSInstaller;
 
@@ -122,112 +119,6 @@ public class SettingsFragment extends Fragment {
         String midiInputDevice = preferences.getString("midi_input_device", "auto");
         loadMIDIInputDeviceSpinner(sMIDIInputDevice, midiInputDevice);
 
-        final Spinner sBox64Version = view.findViewById(R.id.SBox64Version);
-        String box64Version = preferences.getString("box64_version", null);
-        GeneralComponents.initViews(GeneralComponents.Type.BOX64, view.findViewById(R.id.Box64Toolbox), sBox64Version, box64Version, DefaultVersion.BOX64);
-
-        final Spinner sBox64Preset = view.findViewById(R.id.SBox64Preset);
-        loadBox64PresetSpinner(view, sBox64Preset);
-
-        final RadioGroup rgAppTheme = view.findViewById(R.id.RGAppTheme);
-        final int oldAppThemeId = preferences.getInt("app_theme", APP_THEME_DARK) == APP_THEME_DARK ? R.id.RBDark : R.id.RBLight;
-        rgAppTheme.check(oldAppThemeId);
-
-        final CheckBox cbMoveCursorToTouchpoint = view.findViewById(R.id.CBMoveCursorToTouchpoint);
-        cbMoveCursorToTouchpoint.setChecked(preferences.getBoolean("move_cursor_to_touchpoint", false));
-
-        final CheckBox cbCapturePointerOnExternalMouse = view.findViewById(R.id.CBCapturePointerOnExternalMouse);
-        cbCapturePointerOnExternalMouse.setChecked(preferences.getBoolean("capture_pointer_on_external_mouse", true));
-
-        final CheckBox cbOpenAndroidBrowserFromWine = view.findViewById(R.id.CBOpenAndroidBrowserFromWine);
-        cbOpenAndroidBrowserFromWine.setChecked(preferences.getBoolean("open_android_browser_from_wine", true));
-
-        final CheckBox cbUseAndroidClipboardOnWine = view.findViewById(R.id.CBUseAndroidClipboardOnWine);
-        cbUseAndroidClipboardOnWine.setChecked(preferences.getBoolean("use_android_clipboard_on_wine", false));
-
-        final CheckBox cbEnableBackgroundWakelock = view.findViewById(R.id.CBEnableBackgroundWakelock);
-        cbEnableBackgroundWakelock.setChecked(preferences.getBoolean("enable_background_wakelock", false));
-
-        final CheckBox cbEnableBackgroundProtection = view.findViewById(R.id.CBEnableBackgroundProtection);
-        cbEnableBackgroundProtection.setChecked(preferences.getBoolean("enable_background_protection", false));
-        cbEnableBackgroundProtection.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            cbEnableBackgroundWakelock.setVisibility(isChecked ? View.VISIBLE : View.GONE);
-            if (!isChecked) cbEnableBackgroundWakelock.setChecked(false);
-
-            if (isChecked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    // We force a temporary notification channel so that the notification permission request window appears on APIs 33+
-                    String tempId = "permission_trigger";
-                    NotificationUtils.getInstance(getContext().getApplicationContext()).createNotificationChannel(context, tempId, "Permission Trigger", NotificationManager.IMPORTANCE_LOW);
-//                    NotificationUtils.getInstance(getContext().getApplicationContext()).createNotificationChannel(); // Create the foreground notification channel.
-
-                    // And delete the channel after 1 second.
-                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                        NotificationManager nm = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-                        if (nm != null) nm.deleteNotificationChannel(tempId);
-                    }, 1000);
-                }
-            }
-        });
-        cbEnableBackgroundWakelock.setVisibility(cbEnableBackgroundProtection.isChecked() ? View.VISIBLE : View.GONE);
-
-        final CheckBox cbSaveMemOnRunFromSteam = view.findViewById(R.id.CBSaveMemOnRunFromSteam);
-        cbSaveMemOnRunFromSteam.setChecked(preferences.getBoolean("save_mem_on_run_from_steam", true));
-
-        final CheckBox cbEnableWineDebug = view.findViewById(R.id.CBEnableWineDebug);
-        cbEnableWineDebug.setChecked(preferences.getBoolean("enable_wine_debug", false));
-
-        final ArrayList<String> wineDebugChannels = new ArrayList<>(Arrays.asList(preferences.getString("wine_debug_channels", DEFAULT_WINE_DEBUG_CHANNELS).split(",")));
-        loadWineDebugChannels(view, wineDebugChannels);
-
-        final Spinner sBox64Logs = view.findViewById(R.id.SBox64Logs);
-        sBox64Logs.setSelection(preferences.getInt("box64_logs", 0));
-
-        final CheckBox cbSaveLogsToFile = view.findViewById(R.id.CBSaveLogsToFile);
-        cbSaveLogsToFile.setChecked(preferences.getBoolean("save_logs_to_file", false));
-
-        final EditText etLogFile = view.findViewById(R.id.ETLogFile);
-        final String defaultLogPath = LogView.getLogFile().getPath();
-        etLogFile.setText(preferences.getString("log_file", defaultLogPath));
-        etLogFile.setVisibility(cbSaveLogsToFile.isChecked() ? View.VISIBLE : View.GONE);
-        cbSaveLogsToFile.setOnCheckedChangeListener((buttonView, isChecked) -> etLogFile.setVisibility(isChecked ? View.VISIBLE : View.GONE));
-
-        final SeekBar sbCursorSpeed = view.findViewById(R.id.SBCursorSpeed);
-        sbCursorSpeed.setValue(preferences.getFloat("cursor_speed", 1.0f) * 100);
-
-        final SeekBar sbCursorSize = view.findViewById(R.id.SBCursorSize);
-        sbCursorSize.setValue(preferences.getFloat("cursor_scale", 1.0f) * 100);
-
-        final ColorPickerView cpvCursorColor = view.findViewById(R.id.CPVCursorColor);
-        cpvCursorColor.setPalette(0xffffff, 0x000000, 0x651fff, 0xffea00, 0xff9100, 0xf50057, 0x00b0ff, 0x1de9b6);
-        cpvCursorColor.setColor(preferences.getInt("cursor_color", 0xffffff));
-
-        final Spinner sGamepadModel = view.findViewById(R.id.SGamepadModel);
-        loadGamepadModelSpinner(sGamepadModel);
-
-        final Spinner sWineVersion = view.findViewById(R.id.SWineVersion);
-        loadWineVersionSpinner(view, sWineVersion);
-
-        final Spinner sLanguage = view.findViewById(R.id.SLanguage);
-        sLanguage.setSelection(LocaleHelper.getLocaleIndex(context));
-        final int oldLCIndex = sLanguage.getSelectedItemPosition();
-
-        view.findViewById(R.id.BTReinstallSystemFiles).setOnClickListener((v) -> {
-            ContentDialog.confirm(context, R.string.do_you_want_to_reinstall_system_files, () -> RootFSInstaller.install((MainActivity)getActivity()));
-        });
-
-        loadGamepadPlayerConfigs(view);
-
-        if (MainActivity.DEBUG_MODE) {
-            view.findViewById(R.id.LLWineInstallation).setVisibility(View.VISIBLE);
-        }
-
-        view.findViewById(R.id.BTConfirm).setOnClickListener((v) -> {
-            SharedPreferences.Editor editor = preferences.edit();
-            editor.putString("soundfont", sSoundFont.getSelectedItem().toString());
-            editor.putString("box64_version", StringUtils.parseIdentifier(sBox64Version.getSelectedItem()));
-            editor.putString("box64_preset", Box64PresetManager.getSpinnerSelectedId(sBox64Preset));
-            editor.putBoolean("move_cursor_to_touchpoint", cbMoveCursorToTouchpoint.isChecked());
             editor.putBoolean("capture_pointer_on_external_mouse", cbCapturePointerOnExternalMouse.isChecked());
             editor.putFloat("cursor_speed", sbCursorSpeed.getValue() / 100.0f);
             editor.putFloat("cursor_scale", sbCursorSize.getValue() / 100.0f);
