@@ -1,0 +1,28 @@
+name: Linux X Transformation
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+
+jobs:
+  transform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run transformation script
+        run: |
+          chmod +x scripts/linux-x-transform.sh
+          bash scripts/linux-x-transform.sh
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Apply Linux X transformation"
+          git push
