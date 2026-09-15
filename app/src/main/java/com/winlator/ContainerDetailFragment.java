@@ -5,71 +5,67 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.DocumentsContract;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.SubMenu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.PopupMenu;
-import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentActivity;
 import androidx.preference.PreferenceManager;
 
+import com.google.android.material.tabs.TabLayout;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
-
-import com.winlator.container.GraphicsDrivers;
+import com.winlator.container.GraphicsDriverPicker;
 import com.winlator.contentdialog.AddEnvVarDialog;
 import com.winlator.contentdialog.AudioDriverConfigDialog;
 import com.winlator.contentdialog.ContentDialog;
-import com.winlator.contentdialog.VortekConfigDialog;
 import com.winlator.core.AppUtils;
 import com.winlator.core.Callback;
-
 import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
-import com.winlator.container.GraphicsDriverPicker;
-import com.winlator.linux.LinuxSessionLauncher;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.PreloaderDialog;
 import com.winlator.core.StringUtils;
-
+import com.winlator.linux.LinuxContainer;
+import com.winlator.linux.LinuxPreset;
+import com.winlator.linux.LinuxPresetManager;
+import com.winlator.linux.LinuxSessionLauncher;
 import com.winlator.widget.CPUListView;
-import com.winlator.widget.ColorPickerView;
 import com.winlator.widget.EnvVarsView;
-import com.winlator.widget.FrameRating;
-import com.winlator.widget.ImagePickerView;
-import com.winlator.widget.SeekBar;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 public class ContainerDetailFragment extends Fragment {
     private ContainerManager manager;
     private final int containerId;
-    private Container container;
+    private LinuxContainer container;
     private PreloaderDialog preloaderDialog;
-    private Callback<String> openDirectoryCallback;
+    private EnvVarsView envVarsView;
+    private GraphicsDriverPicker graphicsDriverPicker;
+    private LinearLayout llTabEnvVars;
+    private LinearLayout llTabAdvanced;
+    private EditText etName;
+    private Spinner sScreenSize;
+    private Spinner sAudioDriver;
+    private Spinner sHUDMode;
+    private Spinner sDesktopEnv;
+    private Spinner sCPUGovernor;
+    private Spinner sStartupSelection;
+    private Spinner sControlsProfile;
+    private EditText etLaunchCommand;
+    private CPUListView cpuListView;
 
     public ContainerDetailFragment() {
         this(0);
@@ -84,17 +80,6 @@ public class ContainerDetailFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(false);
         preloaderDialog = new PreloaderDialog(getActivity());
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        if (requestCode == MainActivity.OPEN_DIRECTORY_REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            if (data != null) {
-                String path = FileUtils.getFilePathFromUri(data.getData());
-                if (path != null && openDirectoryCallback != null) openDirectoryCallback.call(path);
-            }
-            openDirectoryCallback = null;
-        }
     }
 
     @Override
@@ -114,14 +99,49 @@ public class ContainerDetailFragment extends Fragment {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final View view = inflater.inflate(R.layout.container_detail_fragment, root, false);
         manager = new ContainerManager(context);
-        container = containerId > 0 ? manager.getContainerById(containerId) : null;
+        container = containerId > 0 ? (LinuxContainer)manager.getContainerById(containerId) : null;
 
-        final EditText etName = view.findViewById(R.id.ETName);
+        etName = view.findViewById(R.id.ETName);
+        sScreenSize = view.findViewById(R.id.SScreenSize);
+        sAudioDriver = view.findViewById(R.id.SAudioDriver);
+        sHUDMode = view.findViewById(R.id.SHUDMode);
+        sDesktopEnv = view.findViewById(R.id.SDesktopEnv);
+        sCPUGovernor = view.findViewById(R.id.SCPUGovernor);
+        sStartupSelection = view.findViewById(R.id.SStartupSelection);
+        sControlsProfile = view.findViewById(R.id.SControlsProfile);
+        etLaunchCommand = view.findViewById(R.id.ETLaunchCommand);
+        cpuListView = view.findViewById(R.id.CPUListView);
+
+        LinearLayout llGraphicsDriver = view.findViewById(R.id.LLGraphicsDriver);
+        graphicsDriverPicker = new GraphicsDriverPicker(
+            llGraphicsDriver,
+            isEditMode() ? container.getGraphicsDriver() : Container.DEFAULT_AUDIO_DRIVER,
+            isEditMode() ? container.getGraphicsDriverConfig() : ""
+        );
 
         if (isEditMode()) {
             etName.setText(container.getName());
+            AppUtils.setSpinnerSelectionFromIdentifier(sAudioDriver, container.getAudioDriver());
+            sHUDMode.setSelection(container.getHUDMode());
+            sDesktopEnv.setSelection(getDesktopEnvPosition(container.getDesktopEnv()));
+            etLaunchCommand.setText(container.getLaunchCommand());
+            sCPUGovernor.setSelection(getCPUGovernorPosition(container.getCpuGovernor()));
+            sStartupSelection.setSelection(container.getStartupSelection());
         }
-        else etName.setText(getString(R.string.container)+"-"+manager.getNextContainerId());
+        else {
+            etName.setText(getString(R.string.container)+"-"+manager.getNextContainerId());
+        }
+
+        loadScreenSizeSpinner(view, isEditMode() ? container.getScreenSize() : Container.DEFAULT_SCREEN_SIZE);
+        envVarsView = createEnvVarsTab(view);
+
+        cpuListView.setCPUListAsChecked(isEditMode() ? container.getCPUList() : CPUListView.getDefaultCPUListAsString());
+
+        setupTabs(view);
+
+        view.findViewById(R.id.BTAudioDriverConfig).setOnClickListener((v) -> {
+            new AudioDriverConfigDialog(context, sAudioDriver).show();
+        });
 
         view.findViewById(R.id.BTConfirm).setOnClickListener((v) -> {
             try {
@@ -130,56 +150,105 @@ public class ContainerDetailFragment extends Fragment {
                 String envVars = envVarsView.getEnvVars();
                 String graphicsDriver = graphicsDriverPicker.getGraphicsDriver();
                 String graphicsDriverConfig = graphicsDriverPicker.getGraphicsDriverConfig();
-                String audioDriverConfig = vAudioDriverConfig.getTag().toString();
+                String audioDriverConfig = "";
                 String audioDriver = StringUtils.parseIdentifier(sAudioDriver.getSelectedItem());
                 byte hudMode = (byte)sHUDMode.getSelectedItemPosition();
                 String cpuList = cpuListView.getCheckedCPUListAsString();
-                String cpuListWoW64 = cpuListViewWoW64.getCheckedCPUListAsString();
                 byte startupSelection = (byte)sStartupSelection.getSelectedItemPosition();
+                String desktopEnv = getDesktopEnvId(sDesktopEnv.getSelectedItemPosition());
+                String launchCommand = etLaunchCommand.getText().toString().trim();
+                String cpuGovernor = sCPUGovernor.getSelectedItem().toString();
 
                 if (isEditMode()) {
                     container.setName(name);
                     container.setScreenSize(screenSize);
                     container.setEnvVars(envVars);
                     container.setCPUList(cpuList);
-                    container.setCPUListWoW64(cpuListWoW64);
                     container.setGraphicsDriver(graphicsDriver);
                     container.setGraphicsDriverConfig(graphicsDriverConfig);
                     container.setAudioDriver(audioDriver);
                     container.setAudioDriverConfig(audioDriverConfig);
                     container.setHUDMode(hudMode);
                     container.setStartupSelection(startupSelection);
+                    container.setDesktopEnv(desktopEnv);
+                    container.setLaunchCommand(launchCommand);
+                    container.setCpuGovernor(cpuGovernor);
                     container.saveData();
-
-                    getActivity().onBackPressed();
                 }
                 else {
+                    container = new LinuxContainer(0);
+                    container.setName(name);
+                    container.setScreenSize(screenSize);
+                    container.setEnvVars(envVars);
+                    container.setCPUList(cpuList);
+                    container.setGraphicsDriver(graphicsDriver);
+                    container.setGraphicsDriverConfig(graphicsDriverConfig);
+                    container.setAudioDriver(audioDriver);
+                    container.setAudioDriverConfig(audioDriverConfig);
+                    container.setHUDMode(hudMode);
+                    container.setStartupSelection(startupSelection);
+                    container.setDesktopEnv(desktopEnv);
+                    container.setLaunchCommand(launchCommand);
+                    container.setCpuGovernor(cpuGovernor);
+                    container.setRootfsType(LinuxContainer.DEFAULT_ROOTFS_TYPE);
+
                     JSONObject data = new JSONObject();
                     data.put("name", name);
                     data.put("screenSize", screenSize);
                     data.put("envVars", envVars);
                     data.put("cpuList", cpuList);
-                    data.put("cpuListWoW64", cpuListWoW64);
                     data.put("graphicsDriver", graphicsDriver);
                     data.put("graphicsDriverConfig", graphicsDriverConfig);
                     data.put("audioDriver", audioDriver);
                     data.put("audioDriverConfig", audioDriverConfig);
                     data.put("hudMode", hudMode);
                     data.put("startupSelection", startupSelection);
+                    data.put("desktopEnv", desktopEnv);
+                    data.put("launchCommand", launchCommand);
+                    data.put("cpuGovernor", cpuGovernor);
+                    data.put("rootfsType", LinuxContainer.DEFAULT_ROOTFS_TYPE);
 
                     preloaderDialog.show(R.string.creating_container);
-                    manager.createContainerAsync(data, (container) -> {
-                        if (container != null) {
-                            this.container = container;
+                    manager.createContainerAsync(data, (createdContainer) -> {
+                        if (createdContainer != null) {
+                            this.container = (LinuxContainer)createdContainer;
                         }
                         preloaderDialog.close();
-                        getActivity().onBackPressed();
                     });
+                }
+
+                if (getActivity() != null) {
+                    getActivity().onBackPressed();
                 }
             }
             catch (JSONException e) {}
         });
+
         return view;
+    }
+
+    private void setupTabs(final View view) {
+        llTabEnvVars = view.findViewById(R.id.LLTabEnvVars);
+        llTabAdvanced = view.findViewById(R.id.LLTabAdvanced);
+
+        final LinearLayout[] tabs = {llTabEnvVars, llTabAdvanced};
+        TabLayout tabLayout = view.findViewById(R.id.TabLayout);
+
+        for (int i = 0; i < tabs.length; i++) {
+            final int index = i;
+            tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+                @Override
+                public void onTabSelected(TabLayout.Tab tab) {
+                    for (int j = 0; j < tabs.length; j++) {
+                        tabs[j].setVisibility(j == index ? View.VISIBLE : View.GONE);
+                    }
+                }
+                @Override
+                public void onTabUnselected(TabLayout.Tab tab) {}
+                @Override
+                public void onTabReselected(TabLayout.Tab tab) {}
+            });
+        }
     }
 
     public static String getScreenSize(View view) {
@@ -200,14 +269,12 @@ public class ContainerDetailFragment extends Fragment {
 
     public static void loadScreenSizeSpinner(View view, String selectedValue) {
         final Spinner sScreenSize = view.findViewById(R.id.SScreenSize);
-
         final LinearLayout llCustomScreenSize = view.findViewById(R.id.LLCustomScreenSize);
         sScreenSize.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 llCustomScreenSize.setVisibility(sScreenSize.getSelectedItemPosition() == 0 ? View.VISIBLE : View.GONE);
             }
-
             @Override
             public void onNothingSelected(AdapterView<?> parent) {}
         });
@@ -229,4 +296,42 @@ public class ContainerDetailFragment extends Fragment {
         return envVarsView;
     }
 
+    private int getDesktopEnvPosition(String desktopEnv) {
+        if (desktopEnv == null) return 0;
+        switch (desktopEnv) {
+            case "auto": return 0;
+            case "xfce": return 1;
+            case "lxqt": return 2;
+            case "kde": return 3;
+            case "gnome": return 4;
+            case "mate": return 5;
+            case "terminal": return 6;
+            default: return 0;
+        }
+    }
+
+    private String getDesktopEnvId(int position) {
+        switch (position) {
+            case 0: return "auto";
+            case 1: return "xfce";
+            case 2: return "lxqt";
+            case 3: return "kde";
+            case 4: return "gnome";
+            case 5: return "mate";
+            case 6: return "terminal";
+            default: return "auto";
+        }
+    }
+
+    private int getCPUGovernorPosition(String cpuGovernor) {
+        if (cpuGovernor == null) return 0;
+        switch (cpuGovernor) {
+            case "ondemand": return 0;
+            case "performance": return 1;
+            case "powersave": return 2;
+            case "conservative": return 3;
+            case "schedutil": return 4;
+            default: return 0;
+        }
+    }
 }
