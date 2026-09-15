@@ -2,8 +2,6 @@ package com.winlator.container;
 
 import com.winlator.core.FileUtils;
 import com.winlator.core.StringUtils;
-import com.winlator.core.WineUtils;
-import com.winlator.win32.MSLink;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -14,7 +12,6 @@ public class FileInfo implements Comparable<FileInfo> {
     public final String name;
     public final String path;
     public final Type type;
-    private MSLink.LinkInfo linkInfo;
     private final Container container;
 
     public FileInfo(Container container, String path, Type type) {
@@ -30,8 +27,7 @@ public class FileInfo implements Comparable<FileInfo> {
 
     public ArrayList<FileInfo> list() {
         ArrayList<FileInfo> result = new ArrayList<>();
-        File linkFile = getLinkFile();
-        File parent = linkFile != null ? linkFile : toFile();
+        File parent = toFile();
 
         if (parent.isDirectory()) {
             File[] files = parent.listFiles();
@@ -51,8 +47,7 @@ public class FileInfo implements Comparable<FileInfo> {
     }
 
     public int getItemCount() {
-        File linkFile = getLinkFile();
-        File file = linkFile != null ? linkFile : toFile();
+        File file = toFile();
         String[] items = file.list();
         return items != null ? items.length : 0;
     }
@@ -62,14 +57,7 @@ public class FileInfo implements Comparable<FileInfo> {
     }
 
     public File getLinkFile() {
-        MSLink.LinkInfo linkInfo = getLinkinfo();
-        return linkInfo != null ? new File(WineUtils.dosToUnixPath(linkInfo.targetPath, container)) : null;
-    }
-
-    public MSLink.LinkInfo getLinkinfo() {
-        if (linkInfo != null) return linkInfo;
-        if (name.endsWith(".lnk")) linkInfo = MSLink.extractLinkInfo(toFile());
-        return linkInfo;
+        return null;
     }
 
     public boolean renameTo(String newName) {
@@ -80,8 +68,7 @@ public class FileInfo implements Comparable<FileInfo> {
     }
 
     public String getDisplayName() {
-        MSLink.LinkInfo linkInfo = getLinkinfo();
-        return linkInfo != null ? FileUtils.getBasename(name) : name;
+        return name;
     }
 
     @Override
