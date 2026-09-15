@@ -6,8 +6,6 @@ import android.os.Process;
 
 import androidx.preference.PreferenceManager;
 
-import com.winlator.box64.Box64Preset;
-import com.winlator.box64.Box64PresetManager;
 import com.winlator.core.Callback;
 import com.winlator.core.DefaultVersion;
 import com.winlator.core.EnvVars;
@@ -28,7 +26,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
     private static int pid = -1;
     private EnvVars envVars;
-    private String box64Preset = Box64Preset.CONSERVATIVE;
+    private String box64Preset = "conservative";
     private Callback<Integer> terminationCallback;
     private static final Object lock = new Object();
 
@@ -167,8 +165,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
                 }
             }
         }
-
-        envVars.putAll(Box64PresetManager.getEnvVars(context, box64Preset));
 
         File box64RCFile = new File(rootFS.getRootDir(), "/etc/config.box64rc");
         envVars.put("BOX64_RCFILE", box64RCFile.getPath());
