@@ -9,7 +9,6 @@ ORIG_BASE="https://raw.githubusercontent.com/brunodev85/winlator-app/main/app/sr
 FORK="repos/maybeagoodguy60-droid/winlator-app/contents"
 MAIN="app/src/main/java/com/winlator"
 
-gh auth status >/dev/null 2>&1 || { echo "Not authenticated with gh"; exit 1; }
 
 upload_file() {
     local local_path="$1"
