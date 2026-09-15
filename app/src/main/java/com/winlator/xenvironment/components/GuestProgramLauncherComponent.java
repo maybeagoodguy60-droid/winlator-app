@@ -4,10 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Process;
 
-import androidx.preference.PreferenceManager;
 
 import com.winlator.core.Callback;
-import com.winlator.core.DefaultVersion;
 import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
 import com.winlator.core.LocaleHelper;
@@ -30,7 +28,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
     private static int pid = -1;
     private EnvVars envVars;
-    private String box64Preset = "conservative";
     private Callback<Integer> terminationCallback;
     private static final Object lock = new Object();
 
@@ -38,8 +35,6 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     public void start() {
         synchronized (lock) {
             stop();
-            extractBox64File();
-            copyDefaultBox64RCFile();
             pid = execGuestProgram();
         }
     }
@@ -112,25 +107,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         });
     }
 
-    private void extractBox64File() {
-        Context context = environment.getContext();
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String box64Version = preferences.getString("box64_version", DefaultVersion.BOX64);
-        String currentBox64Version = preferences.getString("current_box64_version", "");
 
-        if (!box64Version.equals(currentBox64Version)) {
-            GeneralComponents.extractFile(GeneralComponents.Type.BOX64, context, box64Version, DefaultVersion.BOX64);
-            preferences.edit().putString("current_box64_version", box64Version).apply();
-        }
-    }
-
-    private void copyDefaultBox64RCFile() {
-        Context context = environment.getContext();
-        RootFS rootFS = environment.getRootFS();
-        FileUtils.copy(context, "box64/default.box64rc", new File(rootFS.getRootDir(), "/etc/config.box64rc"));
-    }
-
-    // Box64 env vars removed for Linux X
 
 
     @Override

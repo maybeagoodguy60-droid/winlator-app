@@ -28,6 +28,10 @@ public class RootFS {
         return new RootFS(rootDir);
     }
 
+
+    public static RootFS of(File rootDir) {
+        return new RootFS(rootDir);
+    }
     public File getRootDir() {
         return rootDir;
     }

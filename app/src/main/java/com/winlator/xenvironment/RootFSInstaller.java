@@ -143,6 +143,19 @@ public abstract class RootFSInstaller {
         }
     }
 
+
+    public static void installToDir(final Context context, final File targetRootDir) {
+        final File rootfsFile = new File(context.getFilesDir(), FILENAME);
+        if (!rootfsFile.exists()) return;
+        
+        Executors.newSingleThreadExecutor().execute(() -> {
+            clearRootDir(targetRootDir);
+            boolean success = extractTarGz(rootfsFile, targetRootDir);
+            if (success) {
+                setupHomeDirectory(targetRootDir);
+            }
+        });
+    }
     private static void clearRootDir(File rootDir) {
         if (rootDir.isDirectory()) {
             File[] files = rootDir.listFiles();

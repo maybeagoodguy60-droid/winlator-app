@@ -47,6 +47,7 @@ import com.winlator.core.DefaultVersion;
 import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
 import com.winlator.core.GeneralComponents;
+import com.winlator.linux.LinuxContainer;
 import com.winlator.linux.LinuxSessionLauncher;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.LocaleHelper;
@@ -69,6 +70,7 @@ import com.winlator.widget.XServerView;
 
 import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.RootFS;
+import com.winlator.xenvironment.RootFSInstaller;
 import com.winlator.xenvironment.XEnvironment;
 import com.winlator.xenvironment.components.ALSAServerComponent;
 import com.winlator.xenvironment.components.GuestProgramLauncherComponent;
@@ -162,6 +164,18 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
             this.graphicsDriver = GraphicsDrivers.parseIdentifiers(graphicsDriver);
             this.graphicsDriverConfig = GraphicsDrivers.parseConfigs(graphicsDriver, graphicsDriverConfig);
+        }
+
+        if (container instanceof LinuxContainer) {
+            LinuxContainer linuxContainer = (LinuxContainer) container;
+            String rootfsPath = linuxContainer.getRootfsPath();
+            if (rootfsPath != null && !rootfsPath.isEmpty()) {
+                File rootfsDir = new File(rootfsPath);
+                if (!rootfsDir.isDirectory() || !new File(rootfsDir, "usr").isDirectory()) {
+                    RootFSInstaller.installToDir(this, rootfsDir);
+                }
+                rootFS = RootFS.of(rootfsDir);
+            }
         }
 
         preloaderDialog.show(R.string.starting_up);
