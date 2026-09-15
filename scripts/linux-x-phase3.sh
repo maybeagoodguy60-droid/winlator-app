@@ -1,58 +1,69 @@
 #!/bin/bash
 # Linux X Phase 3: Critical Bug Fixes
-# Uses curl to download originals, then rewrites them
-set -e
+# Downloads originals via curl, processes with Python, uploads with gh api
+set -euo pipefail
 
 echo "=== Phase 3: Critical Bug Fixes ==="
 
-ORIGINAL_REPO="https://raw.githubusercontent.com/brunodev85/winlator-app/main/app/src/main/java/com/winlator"
+ORIG_BASE="https://raw.githubusercontent.com/brunodev85/winlator-app/main/app/src/main/java/com/winlator"
+FORK="repos/maybeagoodguy60-droid/winlator-app/contents"
+MAIN="app/src/main/java/com/winlator"
+
+gh auth status >/dev/null 2>&1 || { echo "Not authenticated with gh"; exit 1; }
+
+upload_file() {
+    local local_path="$1"
+    local remote_path="$2"
+    local message="$3"
+    local sha
+    sha=$(gh api "$FORK/$remote_path" --jq '.sha' 2>/dev/null || echo "")
+    if [ -z "$sha" ]; then
+        echo "ERROR: Could not get sha for $remote_path"
+        return 1
+    fi
+    local b64
+    b64=$(base64 -w0 "$local_path")
+    gh api "$FORK/$remote_path" -X PUT \
+        -f message="$message" \
+        -f content="$b64" \
+        -f sha="$sha" \
+        -f branch="main" >/dev/null 2>&1
+    echo "Uploaded $remote_path"
+}
 
 # ============================================
 # FIX 1: GuestProgramLauncherComponent - add missing import
 # ============================================
 echo "[1/5] Fixing GuestProgramLauncherComponent..."
 
-GUEST_FILE=$(gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/xenvironment/components/GuestProgramLauncherComponent.java -q '.content' 2>&1)
-GUEST_FILE=$(echo "$GUEST_FILE" | tr -d '\n' | base64 -d 2>/dev/null || echo "")
-
-if [ -z "$GUEST_FILE" ]; then
-    echo "ERROR: Could not decode GuestProgramLauncherComponent"
-    exit 1
-fi
-
-# Check if LocaleHelper import is missing
-if ! echo "$GUEST_FILE" | grep -q "import com.winlator.core.LocaleHelper;"; then
-    echo "Adding missing LocaleHelper import..."
-    GUEST_FILE=$(echo "$GUEST_FILE" | sed 's|import com.winlator.core.FileUtils;|import com.winlator.core.FileUtils;\nimport com.winlator.core.LocaleHelper;|')
-fi
-
-GUEST_SHA=$(gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/xenvironment/components/GuestProgramLauncherComponent.java --jq '.sha' 2>&1)
-echo "$GUEST_FILE" | base64 -w0 > /tmp/guest_b64.txt
-gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/xenvironment/components/GuestProgramLauncherComponent.java \
-  -X PUT -f message="Fix GuestProgramLauncherComponent - add missing LocaleHelper import" \
-  -f content="$(cat /tmp/guest_b64.txt)" -f sha="$GUEST_SHA" -f branch="main" 2>&1 | head -3
-echo "Fixed GuestProgramLauncherComponent"
+curl -sL "$ORIG_BASE/xenvironment/components/GuestProgramLauncherComponent.java" -o /tmp/guest_orig.java
+python3 -c "
+import re
+with open('/tmp/guest_orig.java') as f: c = f.read()
+c = c.replace(
+    'import com.winlator.core.FileUtils;',
+    'import com.winlator.core.FileUtils;\nimport com.winlator.core.LocaleHelper;'
+)
+with open('/tmp/guest_fixed.java','w') as f: f.write(c)
+print('OK:', len(c), 'chars')
+"
+upload_file /tmp/guest_fixed.java "$MAIN/xenvironment/components/GuestProgramLauncherComponent.java" "Add missing LocaleHelper import to GuestProgramLauncherComponent"
 
 # ============================================
-# FIX 2: Download + rewrite XServerDisplayActivity
+# FIX 2: XServerDisplayActivity - remove all Wine code
 # ============================================
 echo "[2/5] Rewriting XServerDisplayActivity..."
 
-curl -sL "$ORIGINAL_REPO/XServerDisplayActivity.java" -o /tmp/XServerDisplayActivity_original.java
-if [ ! -s /tmp/XServerDisplayActivity_original.java ]; then
-    echo "ERROR: Could not download XServerDisplayActivity"
-    exit 1
-fi
-echo "Downloaded original: $(wc -c < /tmp/XServerDisplayActivity_original.java) bytes"
-
-python3 << 'PYEOF'
+curl -sL "$ORIG_BASE/XServerDisplayActivity.java" -o /tmp/xsda_orig.java
+python3 << 'XSEOF'
 import re
 
-with open('/tmp/XServerDisplayActivity_original.java', 'r') as f:
-    content = f.read()
+with open('/tmp/xsda_orig.java') as f:
+    c = f.read()
+print(f"Original: {len(c)} chars")
 
-# Remove Wine-specific imports
-wine_imports = [
+# Remove Wine imports
+for imp in [
     'import com.winlator.container.DXWrappers;',
     'import com.winlator.contentdialog.DXVKConfigDialog;',
     'import com.winlator.contentdialog.TurnipConfigDialog;',
@@ -67,113 +78,102 @@ wine_imports = [
     'import com.winlator.core.WineUtils;',
     'import com.winlator.core.WinHandler;',
     'import com.winlator.winhandler.TaskManagerDialog;',
-]
-for imp in wine_imports:
-    content = content.replace(imp, '')
+]:
+    c = c.replace(imp, '')
 
 # Add Linux import
-if 'import com.winlator.linux.LinuxSessionLauncher;' not in content:
-    content = content.replace(
+if 'import com.winlator.linux.LinuxSessionLauncher;' not in c:
+    c = c.replace(
         'import com.winlator.core.GeneralComponents;',
         'import com.winlator.core.GeneralComponents;\nimport com.winlator.linux.LinuxSessionLauncher;'
     )
 
 # Remove Wine field declarations
-for pattern in [
+for p in [
     r'    private WineInfo wineInfo;\n',
     r'    private final WinHandler winHandler = new WinHandler\(this\);\n',
     r'    private Win32AppWorkarounds win32AppWorkarounds;\n',
-    r'    private String\[\] dxwrapper = new String\[\]\{Container.DEFAULT_DXWRAPPER, null\};\n',
+    r'    private String\[\] dxwrapper = new String\[\]\{Container\.DEFAULT_DXWRAPPER, null\};\n',
     r'    private KeyValueSet\[\] dxwrapperConfig;\n',
 ]:
-    content = re.sub(pattern, '', content)
+    c = re.sub(p, '', c)
 
-# Fix setupXEnvironment - remove Wine env vars
-content = content.replace('envVars.put("WINEPREFIX", rootPath+RootFS.WINEPREFIX);', '// Wine prefix removed for Linux X')
-content = content.replace('envVars.put("WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER", "1");', '// Wine DXGI removed for Linux X')
+# Remove useAndroidClipboardOnWine block
+c = re.sub(r'        boolean useAndroidClipboardOnWine.*?\n.*?\n.*?\n', '', c, flags=re.DOTALL)
 
-# Remove WINEDEBUG
-for p in [
-    r'            boolean enableWineDebug.*?\n.*?\n.*?\n',
-    r'        boolean wineprefixNeedsUpdate.*?\n\s*if \(wineprefixNeedsUpdate\) \{.*?\n.*?\n.*?\n.*?\n\s*\}\n',
-]:
-    content = re.sub(p, '', content, flags=re.DOTALL)
+# Remove wineprefixNeedsUpdate block
+c = re.sub(r'            boolean wineprefixNeedsUpdate.*?\n\s*if \(wineprefixNeedsUpdate\) \{.*?\n.*?\n.*?\n.*?\n\s*\}\n', '', c, flags=re.DOTALL)
 
-# Remove Win32AppWorkarounds init
-content = re.sub(r'            win32AppWorkarounds = new Win32AppWorkarounds\(this\);\n', '', content)
+# Remove win32AppWorkarounds init
+c = re.sub(r'            win32AppWorkarounds = new Win32AppWorkarounds\(this\);\n', '', c)
 
-# Remove WineInfo setup block
-content = re.sub(
+# Remove WineInfo setup
+c = re.sub(
     r'            String wineVersion = container\.getWineVersion\(\);\n.*?wineInfo = WineInfo\.fromIdentifier\(this, wineVersion\);\n.*?if \(wineInfo != WineInfo\.MAIN_WINE_INFO\).*?\n',
-    '', content, flags=re.DOTALL
+    '', c, flags=re.DOTALL
 )
 
-# Remove shortcut/dxwrapper extraction block
-content = re.sub(
-    r'            String shortcutPath = container\.getExtra\("shortcutPath"\);\n.*?dxwrapperConfig = dxwrapperPicker\.getConfigs\(\);\n.*?\}\n.*?\}',
-    '', content, flags=re.DOTALL
+# Remove shortcut/dxwrapper extraction block (big block with multiple conditions)
+c = re.sub(
+    r'            String shortcutPath = container\.getExtra\("shortcutPath"\).*?dxwrapperConfig = dxwrapperPicker\.getConfigs\(\);\n\s*\}\n\s*\}',
+    '', c, flags=re.DOTALL
 )
 
 # Remove setWinHandler
-content = content.replace('xServer.setWinHandler(winHandler);', '// WinHandler removed for Linux X')
-
-# Remove useAndroidClipboardOnWine
-content = re.sub(r'        boolean useAndroidClipboardOnWine.*?\n.*?\n.*?\n', '', content, flags=re.DOTALL)
-
-# Remove win32AppWorkarounds references
-content = re.sub(r'            if \(win32AppWorkarounds != null\) win32AppWorkarounds\.start\(\);\n', '', content)
-content = re.sub(r'        if \(win32AppWorkarounds != null\) win32AppWorkarounds\..*?\n', '', content)
+c = c.replace('xServer.setWinHandler(winHandler);', '// WinHandler removed for Linux X')
 
 # Replace guestExecutable with Linux session
-content = re.sub(
+c = re.sub(
     r'                String guestExecutable = "wine explorer /desktop=.*?";',
     '                String guestExecutable = LinuxSessionLauncher.buildLaunchCommand(rootFS.getRootDir(), container.getExtra("desktopEnv", "auto"), container.getExtra("launchCommand", ""));',
-    content
+    c
 )
 
-# Remove box64Preset line
-content = re.sub(
-    r'            guestProgramLauncherComponent\.setBox64Preset\(.*?\);\n',
-    '', content
-)
+# Remove box64Preset
+c = re.sub(r'            guestProgramLauncherComponent\.setBox64Preset\(.*?\);\n', '', c)
 
 # Remove wineInfo = getIntent() block
-content = re.sub(r'        wineInfo = getIntent\(\)\.getParcelableExtra\("wine_info"\);\n.*?\n', '', content, flags=re.DOTALL)
+c = re.sub(r'        wineInfo = getIntent\(\)\.getParcelableExtra\("wine_info"\);\n.*?\n', '', c, flags=re.DOTALL)
 
 # Remove setupWineSystemFiles call
-content = content.replace('setupWineSystemFiles();', '// setupWineSystemFiles removed')
+c = c.replace('setupWineSystemFiles();', '// Wine system files removed for Linux X')
 
 # Remove changeWineAudioDriver call
-content = content.replace('changeWineAudioDriver();', '// changeWineAudioDriver removed')
+c = c.replace('changeWineAudioDriver();', '// Wine audio driver removed for Linux X')
 
 # Remove extractDXWrapperFiles call
-content = re.sub(r'        if \(extractDXWrapperFiles\(\)\) containerDataChanged = true;\n', '// extractDXWrapperFiles removed\n', content)
+c = re.sub(r'        if \(extractDXWrapperFiles\(\)\) containerDataChanged = true;\n', '// DXWrapper files removed for Linux X\n', c)
 
 # Remove extractWinComponentFiles call
-content = content.replace('extractWinComponentFiles();', '// extractWinComponentFiles removed')
+c = c.replace('extractWinComponentFiles();', '// Win components removed for Linux X')
 
 # Remove wineprefixWasUpdated
-content = re.sub(r'        boolean wineprefixWasUpdated = WineUtils\.isWineprefixWasUpdated\(container\);\n', '', content)
-content = re.sub(r'wineprefixWasUpdated', 'false', content)
+c = re.sub(r'        boolean wineprefixWasUpdated = WineUtils\.isWineprefixWasUpdated\(container\);\n', '', c)
+c = c.replace('wineprefixWasUpdated', 'false')
 
-# Remove WINE-version checks in containerDataChanged
-content = re.sub(
-    r'        if \(!container\.getExtra\("appVersion"\).*?\n.*?\n.*?\n.*?\n.*?\n',
-    '        if (!container.getExtra("appVersion").equals(appVersion) || !container.getExtra("rfsVersion").equals(rfsVersion)) {\n',
-    content, flags=re.DOTALL
-)
+# Remove WINEPREFIX env var
+c = c.replace('envVars.put("WINEPREFIX", rootPath+RootFS.WINEPREFIX);', '// Wine prefix removed for Linux X')
+
+# Remove WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER
+c = c.replace('envVars.put("WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER", "1");', '')
+
+# Remove WINEDEBUG block
+c = re.sub(r'            boolean enableWineDebug.*?\n.*?\n.*?\n', '', c, flags=re.DOTALL)
 
 # Remove WineUtils.createDosdevicesSymlinks
-content = re.sub(r'        WineUtils\.createDosdevicesSymlinks\(container, true\);\n', '', content)
+c = re.sub(r'        WineUtils\.createDosdevicesSymlinks\(container, true\);\n', '', c)
 
 # Remove WineUtils.changeServicesStatus
-content = re.sub(r'            WineUtils\.changeServicesStatus\(container, container\.getStartupSelection\(\)\);\n', '', content)
+c = re.sub(r'            WineUtils\.changeServicesStatus\(container, container\.getStartupSelection\(\)\);\n', '', c)
 
-# Remove openAndroidBrowserFromWine
-content = re.sub(r'        boolean openAndroidBrowserFromWine.*?\n.*?\n.*?\n.*?\n.*?\n.*?\n', '', content, flags=re.DOTALL)
+# Remove openAndroidBrowserFromWine block
+c = re.sub(r'        boolean openAndroidBrowserFromWine.*?\n.*?\n.*?\n.*?\n.*?\n.*?\n', '', c, flags=re.DOTALL)
 
-# Remove private Wine methods
-for method_pattern in [
+# Remove desktopName variable
+c = re.sub(r'            String desktopName = container\.getExtra\("desktopName"\).*?\n', '', c)
+
+# Remove Wine private methods
+for method in [
     r'    private void setupWineSystemFiles\(\) \{.*?\n    \}',
     r'    private void changeWineAudioDriver\(\) \{.*?\n    \}',
     r'    private boolean extractDXWrapperFiles\(\) \{.*?\n    \}',
@@ -185,44 +185,36 @@ for method_pattern in [
     r'    private boolean isGenerateWineprefix\(\) \{.*?\n    \}',
     r'    private void applyGeneralPatches.*?\n    \}',
 ]:
-    content = re.sub(method_pattern, '', content, flags=re.DOTALL)
+    c = re.sub(method, '', c, flags=re.DOTALL)
 
-# Remove desktopName variable
-content = re.sub(r'            String desktopName = container\.getExtra\("desktopName"\).*?\n', '', content)
+# Remove win32AppWorkarounds.stop() reference
+c = re.sub(r'        if \(win32AppWorkarounds != null\) win32AppWorkarounds\..*?\n', '', c)
 
-# Remove blank lines
-content = re.sub(r'\n{3,}', '\n\n', content)
+# Clean blank lines
+c = re.sub(r'\n{3,}', '\n\n', c)
 
-with open('/tmp/XServerDisplayActivity_fixed.java', 'w') as f:
-    f.write(content)
+with open('/tmp/xsda_fixed.java', 'w') as f:
+    f.write(c)
+print(f"Fixed: {len(c)} chars")
+XSEOF
 
-print(f"Fixed XServerDisplayActivity: {len(content)} chars")
-PYEOF
-
-# Upload the fixed file
-FIXED_SHA=$(gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/XServerDisplayActivity.java --jq '.sha' 2>&1)
-cat /tmp/XServerDisplayActivity_fixed.java | base64 -w0 > /tmp/xsda_b64.txt
-gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/XServerDisplayActivity.java \
-  -X PUT -f message="Rewrite XServerDisplayActivity - remove all Wine references" \
-  -f content="$(cat /tmp/xsda_b64.txt)" -f sha="$FIXED_SHA" -f branch="main" 2>&1 | head -3
-echo "Fixed XServerDisplayActivity"
+upload_file /tmp/xsda_fixed.java "$MAIN/XServerDisplayActivity.java" "Rewrite XServerDisplayActivity - remove all Wine references"
 
 # ============================================
-# FIX 3: Download + rewrite ContainerDetailFragment
+# FIX 3: ContainerDetailFragment - remove all Wine code
 # ============================================
 echo "[3/5] Rewriting ContainerDetailFragment..."
 
-curl -sL "$ORIGINAL_REPO/ContainerDetailFragment.java" -o /tmp/ContainerDetailFragment_original.java
-echo "Downloaded original: $(wc -c < /tmp/ContainerDetailFragment_original.java) bytes"
-
-python3 << 'PYEOF2'
+curl -sL "$ORIG_BASE/ContainerDetailFragment.java" -o /tmp/cdf_orig.java
+python3 << 'CDFEOF'
 import re
 
-with open('/tmp/ContainerDetailFragment_original.java', 'r') as f:
-    content = f.read()
+with open('/tmp/cdf_orig.java') as f:
+    c = f.read()
+print(f"Original: {len(c)} chars")
 
-# Remove Wine-specific imports
-wine_imports = [
+# Remove Wine imports
+for imp in [
     'import com.winlator.box64.Box64Preset;',
     'import com.winlator.box64.Box64PresetManager;',
     'import com.winlator.container.DXWrapperPicker;',
@@ -234,55 +226,54 @@ wine_imports = [
     'import com.winlator.core.WineUtils;',
     'import com.winlator.win32.MSLogFont;',
     'import com.winlator.win32.WinVersions;',
-]
-for imp in wine_imports:
-    content = content.replace(imp, '')
+]:
+    c = c.replace(imp, '')
 
-# Add Linux imports
-if 'import com.winlator.linux.LinuxSessionLauncher;' not in content:
-    content = content.replace(
+# Add Linux import
+if 'import com.winlator.linux.LinuxSessionLauncher;' not in c:
+    c = c.replace(
         'import com.winlator.container.GraphicsDriverPicker;',
         'import com.winlator.container.GraphicsDriverPicker;\nimport com.winlator.linux.LinuxSessionLauncher;'
     )
 
-# Remove Wine version spinner
-content = re.sub(
+# Remove Wine version spinner block
+c = re.sub(
     r'        final ArrayList<WineInfo> wineInfos = WineInstaller\.getInstalledWineInfos\(context\);\n.*?WinVersions\.loadSpinner\(container, sWinVersion\);\n',
-    '', content, flags=re.DOTALL
+    '', c, flags=re.DOTALL
 )
 
-# Remove DXWrapper picker
-content = re.sub(
-    r'        String oldDXWrapperConfig = isEditMode\(\).*?\n.*?DXWrapperPicker dxwrapperPicker.*?\n.*?BTHelpDXWrapper.*?\n',
-    '', content, flags=re.DOTALL
+# Remove DXWrapper picker block
+c = re.sub(
+    r'        String oldDXWrapperConfig = isEditMode\(\).*?BTHelpDXWrapper.*?\n',
+    '', c, flags=re.DOTALL
 )
 
 # Remove Box64 preset spinner
-content = re.sub(
+c = re.sub(
     r'        final Spinner sBox64Preset = .*?\n.*?Box64PresetManager\.loadSpinner\(sBox64Preset.*?\n',
-    '', content, flags=re.DOTALL
+    '', c, flags=re.DOTALL
 )
 
 # Remove WoW64 CPU list
-content = re.sub(r'        final CPUListView cpuListViewWoW64.*?\n.*?\n', '', content)
+c = re.sub(r'        final CPUListView cpuListViewWoW64.*?\n.*?\n', '', c)
 
 # Remove createWineConfigurationTab
-content = re.sub(r'        createWineConfigurationTab\(view\);\n', '', content)
+c = re.sub(r'        createWineConfigurationTab\(view\);\n', '', c)
 
 # Remove createWinComponentsTab
-content = re.sub(r'        createWinComponentsTab\(view,.*?\);\n', '', content)
+c = re.sub(r'        createWinComponentsTab\(view,.*?\);\n', '', c)
 
 # Remove createDrivesTab
-content = re.sub(r'        createDrivesTab\(view\);\n', '', content)
+c = re.sub(r'        createDrivesTab\(view\);\n', '', c)
 
 # Remove saveWineRegistryKeys call
-content = re.sub(r'                    saveWineRegistryKeys\(view\);\n', '', content)
+c = re.sub(r'                    saveWineRegistryKeys\(view\);\n', '', c)
 
 # Remove DXWrapper/Box64 data extraction in confirmButton
-content = re.sub(r'                String dxwrapper = dxwrapperPicker.*?\n', '', content)
-content = re.sub(r'                String dxwrapperConfig = dxwrapperPicker.*?\n', '', content)
-content = re.sub(r'                String box64Preset = Box64PresetManager.*?\n', '', content)
-content = re.sub(r'                String desktopTheme = getDesktopTheme\(view\);\n', '', content)
+c = re.sub(r'                String dxwrapper = dxwrapperPicker.*?\n', '', c)
+c = re.sub(r'                String dxwrapperConfig = dxwrapperPicker.*?\n', '', c)
+c = re.sub(r'                String box64Preset = Box64PresetManager.*?\n', '', c)
+c = re.sub(r'                String desktopTheme = getDesktopTheme\(view\);\n', '', c)
 
 # Remove container.setXxx calls
 for p in [
@@ -291,7 +282,7 @@ for p in [
     r'                    container\.setBox64Preset\(box64Preset\);\n',
     r'                    container\.setDesktopTheme\(desktopTheme\);\n',
 ]:
-    content = re.sub(p, '', content)
+    c = re.sub(p, '', c)
 
 # Remove data.put calls for Wine fields
 for p in [
@@ -303,19 +294,16 @@ for p in [
     r'                    data\.put\("wincomponents".*?\n',
     r'                    data\.put\("drives".*?\n',
 ]:
-    content = re.sub(p, '', content)
+    c = re.sub(p, '', c)
 
 # Remove requireRestart check
-content = re.sub(r'        boolean requireRestart = .*?\n.*?\n.*?\n', '', content, flags=re.DOTALL)
+c = re.sub(r'        boolean requireRestart = .*?\n.*?\n.*?\n', '', c, flags=re.DOTALL)
 
 # Remove wineInfos.size() check
-content = re.sub(
-    r'        if \(wineInfos\.size\(\) > 0\) \{\n.*?\}\n',
-    '', content, flags=re.DOTALL
-)
+c = re.sub(r'        if \(wineInfos\.size\(\) > 0\) \{\n.*?\}\n', '', c, flags=re.DOTALL)
 
 # Remove Wine private methods
-for method_pattern in [
+for method in [
     r'    private void saveWineRegistryKeys.*?\n    \}',
     r'    private void createWineConfigurationTab.*?\n    \}',
     r'    private void createWinComponentsTab.*?\n    \}',
@@ -325,33 +313,82 @@ for method_pattern in [
     r'    private String getDesktopTheme.*?\n    \}',
     r'    private void loadWineVersionSpinner.*?\n    \}',
 ]:
-    content = re.sub(method_pattern, '', content, flags=re.DOTALL)
+    c = re.sub(method, '', c, flags=re.DOTALL)
 
-# Remove duplicate blank lines
-content = re.sub(r'\n{3,}', '\n\n', content)
+# Clean blank lines
+c = re.sub(r'\n{3,}', '\n\n', c)
 
-with open('/tmp/ContainerDetailFragment_fixed.java', 'w') as f:
-    f.write(content)
+with open('/tmp/cdf_fixed.java', 'w') as f:
+    f.write(c)
+print(f"Fixed: {len(c)} chars")
+CDFEOF
 
-print(f"Fixed ContainerDetailFragment: {len(content)} chars")
-PYEOF2
-
-FIXED_SHA=$(gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/ContainerDetailFragment.java --jq '.sha' 2>&1)
-cat /tmp/ContainerDetailFragment_fixed.java | base64 -w0 > /tmp/cdf_b64.txt
-gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/ContainerDetailFragment.java \
-  -X PUT -f message="Rewrite ContainerDetailFragment - remove all Wine references" \
-  -f content="$(cat /tmp/cdf_b64.txt)" -f sha="$FIXED_SHA" -f branch="main" 2>&1 | head -3
-echo "Fixed ContainerDetailFragment"
+upload_file /tmp/cdf_fixed.java "$MAIN/ContainerDetailFragment.java" "Rewrite ContainerDetailFragment - remove all Wine references"
 
 # ============================================
-# FIX 4: Fix RootFSInstaller - use ZSTD decompression
+# FIX 4: SettingsFragment - remove Wine references
 # ============================================
-echo "[4/5] Fixing RootFSInstaller..."
+echo "[4/5] Fixing SettingsFragment..."
 
-ROOTFS_SHA=$(gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java --jq '.sha' 2>&1)
+curl -sL "$ORIG_BASE/SettingsFragment.java" -o /tmp/sf_orig.java
+python3 << 'SFEOF'
+import re
 
-# Write the correct RootFSInstaller
-cat > /tmp/RootFSInstaller.java << 'EOF4'
+with open('/tmp/sf_orig.java') as f:
+    c = f.read()
+print(f"Original: {len(c)} chars")
+
+# Remove Wine imports
+for imp in [
+    'import com.winlator.box64.Box64EditPresetDialog;',
+    'import com.winlator.box64.Box64Preset;',
+    'import com.winlator.box64.Box64PresetManager;',
+    'import com.winlator.core.WineInfo;',
+    'import com.winlator.core.WineInstaller;',
+    'import com.winlator.winhandler.GamepadHandler;',
+]:
+    c = c.replace(imp, '')
+
+# Remove Box64 version spinner
+c = re.sub(
+    r'        final Spinner sBox64Version = .*?\n.*?sBox64Version\..*?\n.*?\n.*?\n',
+    '', c, flags=re.DOTALL
+)
+
+# Remove Box64 preset spinner
+c = re.sub(
+    r'        final Spinner sBox64Preset = .*?\n.*?sBox64Preset\..*?\n.*?\n.*?\n',
+    '', c, flags=re.DOTALL
+)
+
+# Remove openAndroidBrowserFromWine checkbox
+c = re.sub(
+    r'        final CheckBox cbOpenAndroidBrowserFromWine.*?\n.*?\n.*?\n',
+    '', c, flags=re.DOTALL
+)
+
+# Remove useAndroidClipboardOnWine checkbox
+c = re.sub(
+    r'        final CheckBox cbUseAndroidClipboardOnWine.*?\n.*?\n.*?\n',
+    '', c, flags=re.DOTALL
+)
+
+# Clean blank lines
+c = re.sub(r'\n{3,}', '\n\n', c)
+
+with open('/tmp/sf_fixed.java', 'w') as f:
+    f.write(c)
+print(f"Fixed: {len(c)} chars")
+SFEOF
+
+upload_file /tmp/sf_fixed.java "$MAIN/SettingsFragment.java" "Fix SettingsFragment - remove Wine references"
+
+# ============================================
+# FIX 5: RootFSInstaller - ensure correct
+# ============================================
+echo "[5/5] Fixing RootFSInstaller..."
+
+cat > /tmp/rfsi.java << 'RFSIEOF'
 package com.winlator.xenvironment;
 
 import com.winlator.MainActivity;
@@ -409,79 +446,9 @@ public abstract class RootFSInstaller {
         }
     }
 }
-EOF4
+RFSIEOF
 
-cat /tmp/RootFSInstaller.java | base64 -w0 > /tmp/rfsi_b64.txt
-gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/xenvironment/RootFSInstaller.java \
-  -X PUT -f message="Fix RootFSInstaller - use ZSTD decompression" \
-  -f content="$(cat /tmp/rfsi_b64.txt)" -f sha="$ROOTFS_SHA" -f branch="main" 2>&1 | head -3
-echo "Fixed RootFSInstaller"
-
-# ============================================
-# FIX 5: Fix SettingsFragment - remove Wine references
-# ============================================
-echo "[5/5] Fixing SettingsFragment..."
-
-curl -sL "$ORIGINAL_REPO/SettingsFragment.java" -o /tmp/SettingsFragment_original.java
-echo "Downloaded original: $(wc -c < /tmp/SettingsFragment_original.java) bytes"
-
-python3 << 'PYEOF3'
-import re
-
-with open('/tmp/SettingsFragment_original.java', 'r') as f:
-    content = f.read()
-
-# Remove Wine-specific imports
-wine_imports = [
-    'import com.winlator.box64.Box64EditPresetDialog;',
-    'import com.winlator.box64.Box64Preset;',
-    'import com.winlator.box64.Box64PresetManager;',
-    'import com.winlator.core.WineInfo;',
-    'import com.winlator.core.WineInstaller;',
-    'import com.winlator.winhandler.GamepadHandler;',
-]
-for imp in wine_imports:
-    content = content.replace(imp, '')
-
-# Remove Box64 version spinner
-content = re.sub(
-    r'        final Spinner sBox64Version = .*?\n.*?sBox64Version\..*?\n.*?\n.*?\n',
-    '', content, flags=re.DOTALL
-)
-
-# Remove Box64 preset spinner
-content = re.sub(
-    r'        final Spinner sBox64Preset = .*?\n.*?sBox64Preset\..*?\n.*?\n.*?\n',
-    '', content, flags=re.DOTALL
-)
-
-# Remove openAndroidBrowserFromWine checkbox
-content = re.sub(
-    r'        final CheckBox cbOpenAndroidBrowserFromWine.*?\n.*?\n.*?\n',
-    '', content, flags=re.DOTALL
-)
-
-# Remove useAndroidClipboardOnWine checkbox
-content = re.sub(
-    r'        final CheckBox cbUseAndroidClipboardOnWine.*?\n.*?\n.*?\n',
-    '', content, flags=re.DOTALL
-)
-
-# Remove duplicate blank lines
-content = re.sub(r'\n{3,}', '\n\n', content)
-
-with open('/tmp/SettingsFragment_fixed.java', 'w') as f:
-    f.write(content)
-
-print(f"Fixed SettingsFragment: {len(content)} chars")
-PYEOF3
-
-FIXED_SHA=$(gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/SettingsFragment.java --jq '.sha' 2>&1)
-cat /tmp/SettingsFragment_fixed.java | base64 -w0 > /tmp/sf_b64.txt
-gh api repos/maybeagoodguy60-droid/winlator-app/contents/app/src/main/java/com/winlator/SettingsFragment.java \
-  -X PUT -f message="Fix SettingsFragment - remove Wine references" \
-  -f content="$(cat /tmp/sf_b64.txt)" -f sha="$FIXED_SHA" -f branch="main" 2>&1 | head -3
-echo "Fixed SettingsFragment"
+upload_file /tmp/rfsi.java "$MAIN/xenvironment/RootFSInstaller.java" "Fix RootFSInstaller - use ZSTD decompression"
 
 echo ""
-echo "=== Phase 3 Complete ==="
+echo "=== Phase 3 Complete: All critical bugs fixed ==="
