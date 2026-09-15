@@ -125,32 +125,6 @@
             android:orientation="horizontal"
             android:gravity="center_vertical" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/dxwrapper" />
-
-            <ImageView
-                android:id="@+id/BTHelpDXWrapper"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_marginLeft="4dp"
-                android:src="@drawable/icon_help"
-                app:tint="#e0e0e0" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/LLDXWrapper"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical" />
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -189,11 +163,6 @@
             <com.google.android.material.tabs.TabItem
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/win_components" />
-
-            <com.google.android.material.tabs.TabItem
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:text="@string/environment_variables" />
 
             <com.google.android.material.tabs.TabItem
@@ -201,44 +170,6 @@
                 android:layout_height="wrap_content"
                 android:text="@string/advanced" />
         </com.google.android.material.tabs.TabLayout>
-
-        <LinearLayout
-            android:id="@+id/LLTabWinComponents"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone">
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp">
-
-                <LinearLayout
-                    style="@style/FieldSet"
-                    android:id="@+id/LLWinComponentsDirectX" />
-
-                <TextView
-                    style="@style/FieldSetLabel"
-                    android:background="?attr/colorSecondarySurface"
-                    android:text="@string/directx" />
-            </FrameLayout>
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp">
-
-                <LinearLayout
-                    style="@style/FieldSet"
-                    android:id="@+id/LLWinComponentsGeneral" />
-
-                <TextView
-                    style="@style/FieldSetLabel"
-                    android:background="?attr/colorSecondarySurface"
-                    android:text="@string/general" />
-            </FrameLayout>
-        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/LLTabEnvVars"
@@ -271,29 +202,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="gone">
-
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp">
-
-                <LinearLayout style="@style/FieldSet">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/box64_preset" />
-
-                    <Spinner
-                        style="@style/ComboBox"
-                        android:id="@+id/SBox64Preset"
-                        android:layout_width="match_parent" />
-                </LinearLayout>
-
-                <TextView
-                    style="@style/FieldSetLabel"
-                    android:background="?attr/colorSecondarySurface"
-                    android:text="@string/box64" />
-            </FrameLayout>
 
             <FrameLayout
                 android:layout_width="match_parent"
