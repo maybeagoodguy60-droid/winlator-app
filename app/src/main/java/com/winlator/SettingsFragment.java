@@ -143,6 +143,7 @@ public class SettingsFragment extends Fragment {
             final byte slot = (byte)i;
             child.setOnClickListener((v) -> (new GamepadPlayerConfigDialog(child, slot)).show());
         }
+    }
     private void putGamepadPlayerConfigs(View view, SharedPreferences.Editor editor) {
         LinearLayout container = view.findViewById(R.id.LLGamepadPlayer);
         for (int i = 0; i < container.getChildCount(); i++) {
