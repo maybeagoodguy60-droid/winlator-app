@@ -14,7 +14,6 @@ import com.winlator.core.AppUtils;
 import com.winlator.core.FileUtils;
 import com.winlator.core.StringUtils;
 import com.winlator.core.UnitUtils;
-import com.winlator.core.WineUtils;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
@@ -54,7 +53,7 @@ public class FileInfoDialog extends ContentDialog {
         else lines.add(new String[]{context.getString(R.string.size), "?"});
 
         if (file.type != FileInfo.Type.DRIVE) {
-            lines.add(new String[]{context.getString(R.string.location), WineUtils.unixToDOSPath(FileUtils.getDirname(file.path), container)});
+            lines.add(new String[]{context.getString(R.string.location), FileUtils.getDirname(file.path)});
         }
 
         Date date = new Date(file.toFile().lastModified());
