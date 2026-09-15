@@ -400,4 +400,37 @@
         <i><b>VKD3D</b></i> is a translation layer for Direct3D 12 API to Vulkan.<br /><br />
         <i><b>CNC DDraw</b></i> is an implementation of DirectDraw for better compatibility with classic games.
     ]]></string>
+<string name="welcome_title">Linux X</string>
+    <string name="welcome_subtitle">ARM64 Linux Desktop for Android</string>
+    <string name="welcome_capabilities">Capabilities</string>
+    <string name="welcome_continue">Continue</string>
+    <string name="welcome_grant_root">Grant Root Access (Optional)</string>
+    <string name="welcome_root_granted">Root: Granted</string>
+    <string name="welcome_root_available">Root: Available (optional)</string>
+    <string name="welcome_root_not_detected">Root: Not detected (not required)</string>
+    <string name="cap_arm64_linux">ARM64 Linux Desktop</string>
+    <string name="cap_arm64_detail">Debian, Alpine, Arch, Fedora &amp; more</string>
+    <string name="cap_gpu">GPU Acceleration (VirGL)</string>
+    <string name="cap_gpu_detail">Hardware-accelerated rendering</string>
+    <string name="cap_audio">Audio (ALSA)</string>
+    <string name="cap_audio_detail">Native Linux audio output</string>
+    <string name="cap_input">Input Controls</string>
+    <string name="cap_input_detail">Gamepad, keyboard, touch</string>
+    <string name="cap_multi">Multiple Containers</string>
+    <string name="cap_multi_detail">Run different distros simultaneously</string>
+    <string name="cap_filemanager">File Manager</string>
+    <string name="cap_filemanager_detail">Browse and manage container files</string>
+    <string name="cap_root">Root Access</string>
+    <string name="cap_root_detail_granted">Full system access available</string>
+    <string name="cap_root_detail_optional">Tap below to grant (optional)</string>
+    <string name="cap_chroot">Chroot Containers</string>
+    <string name="cap_chroot_detail">Requires root access</string>
+    <string name="cap_proot">Proot Containers</string>
+    <string name="cap_proot_detail">Full Linux without root</string>
+    <string name="root_required_prompt">Root access is required for this container type. Grant root access to continue?</string>
+    <string name="rootfs_path">Rootfs Path</string>
+    <string name="rootfs_browse">Browse</string>
+    <string name="rootfs_validate_ok">Valid rootfs detected</string>
+    <string name="rootfs_validate_fail">No valid rootfs found at this path</string>
+    <string name="rootfs_select_hint">Select an extracted rootfs directory or enter path manually</string>
 </resources>
