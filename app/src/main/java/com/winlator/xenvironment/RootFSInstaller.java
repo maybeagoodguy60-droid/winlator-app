@@ -8,6 +8,7 @@ import com.winlator.core.AppUtils;
 import com.winlator.core.DownloadProgressDialog;
 import com.winlator.core.FileUtils;
 import com.winlator.core.PreloaderDialog;
+import com.winlator.core.RootAccessHelper;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -184,6 +185,34 @@ public abstract class RootFSInstaller {
             }
             return success;
         } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+    public static boolean prepareSocketDirs(File rootDir) {
+        String[] dirs = {
+            "/tmp/.X11-unix", "/tmp/.virgl", "/tmp/.sound",
+            "/tmp/.sysvshm", "/tmp/.vortek", "/tmp/shm"
+        };
+        StringBuilder suCmd = new StringBuilder();
+        boolean directOk = true;
+        for (String dir : dirs) {
+            File d = new File(rootDir, dir);
+            directOk &= (d.mkdirs() || d.isDirectory());
+            directOk &= d.setReadable(true, false);
+            directOk &= d.setWritable(true, false);
+            directOk &= d.setExecutable(true, false);
+            if (suCmd.length() > 0) suCmd.append(" && ");
+            suCmd.append("mkdir -p ").append(d.getAbsolutePath());
+            suCmd.append(" && chmod 777 ").append(d.getAbsolutePath());
+        }
+        if (directOk) return true;
+        if (!RootAccessHelper.isRootGranted()) return false;
+        try {
+            Process process = Runtime.getRuntime().exec(new String[]{"su", "-c", suCmd.toString()});
+            process.waitFor();
+            return process.exitValue() == 0;
+        } catch (Exception e) {
             e.printStackTrace();
             return false;
         }

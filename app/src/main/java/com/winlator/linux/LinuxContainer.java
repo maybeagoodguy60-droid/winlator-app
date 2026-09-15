@@ -14,13 +14,16 @@ public class LinuxContainer extends Container {
     public static final String DEFAULT_DESKTOP_ENV = "auto";
     public static final String DEFAULT_CPU_GOVERNOR = "ondemand";
     public static final String DEFAULT_GRAPHICS_DRIVER = GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL;
+    public static final int LAUNCH_MODE_AUTO = 0;
+    public static final int LAUNCH_MODE_PROOT = 1;
+    public static final int LAUNCH_MODE_CHROOT = 2;
     
     private String rootfsPath = "";
     private String rootfsType = DEFAULT_ROOTFS_TYPE;
     private String desktopEnv = DEFAULT_DESKTOP_ENV;
     private String launchCommand = "";
     private String cpuGovernor = DEFAULT_CPU_GOVERNOR;
-    private boolean useChroot = false;
+    private int launchMode = LAUNCH_MODE_AUTO;
 
     public LinuxContainer(int id) {
         super(id);
@@ -59,12 +62,12 @@ public class LinuxContainer extends Container {
         this.launchCommand = launchCommand != null ? launchCommand : "";
     }
 
-    public boolean getUseChroot() {
-        return useChroot;
+    public int getLaunchMode() {
+        return launchMode;
     }
 
-    public void setUseChroot(boolean useChroot) {
-        this.useChroot = useChroot;
+    public void setLaunchMode(int launchMode) {
+        this.launchMode = launchMode;
     }
 
     public String getCpuGovernor() {
@@ -94,6 +97,7 @@ public class LinuxContainer extends Container {
             data.put("desktopEnv", desktopEnv);
             data.put("launchCommand", launchCommand);
             data.put("cpuGovernor", cpuGovernor);
+            data.put("launchMode", launchMode);
             data.put("extraData", getExtraData() != null ? getExtraData() : new JSONObject());
             FileUtils.writeString(getConfigFile(), data.toString());
         } catch (JSONException e) {}
@@ -118,6 +122,7 @@ public class LinuxContainer extends Container {
                 case "desktopEnv": setDesktopEnv(data.getString(key)); break;
                 case "launchCommand": setLaunchCommand(data.getString(key)); break;
                 case "cpuGovernor": setCpuGovernor(data.getString(key)); break;
+                case "launchMode": setLaunchMode(data.getInt(key)); break;
                 case "extraData": setExtraData(data.getJSONObject(key)); break;
             }
         }

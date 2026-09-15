@@ -3,7 +3,7 @@ package com.winlator.linux;
 import android.content.Context;
 
 import com.winlator.core.RootAccessHelper;
-import android.content.Context;
+import com.winlator.xconnector.UnixSocketConfig;
 
 import java.io.File;
 
@@ -11,11 +11,23 @@ public class ProotLauncher {
     public static final String PROOT_BINARY = "proot";
     public static final String PROOT_PATH = "/data/data/com.winlator/files/linuxx/proot";
 
-    public static String buildCommand(Context context, File rootDir, String launchCommand, boolean useChroot) {
+    public static String buildCommand(Context context, File rootDir, String launchCommand, int launchMode) {
         String prootPath = resolveProotPath(context);
-        if (useChroot && RootAccessHelper.isRootGranted()) {
-            return buildChrootCommand(rootDir, launchCommand);
+        boolean rootGranted = RootAccessHelper.isRootGranted();
+
+        boolean useChroot;
+        switch (launchMode) {
+            case LinuxContainer.LAUNCH_MODE_CHROOT:
+                useChroot = rootGranted;
+                break;
+            case LinuxContainer.LAUNCH_MODE_PROOT:
+                useChroot = false;
+                break;
+            default:
+                useChroot = rootGranted && new File(rootDir, "/bin/bash").exists();
         }
+
+        if (useChroot) return buildChrootCommand(rootDir, launchCommand);
         return buildProotCommand(prootPath, rootDir, launchCommand);
     }
 
@@ -43,12 +55,23 @@ public class ProotLauncher {
     }
 
     public static String buildChrootCommand(File rootDir, String launchCommand) {
+        String r = rootDir.getAbsolutePath();
         StringBuilder cmd = new StringBuilder();
         cmd.append("su -c '");
-        cmd.append("mount --bind /proc ").append(rootDir).append("/proc && ");
-        cmd.append("mount --bind /sys ").append(rootDir).append("/sys && ");
-        cmd.append("mount --bind /dev ").append(rootDir).append("/dev && ");
-        cmd.append("chroot ").append(rootDir);
+        cmd.append("export DISPLAY=:0 HOME=/home/xuser USER=xuser TMPDIR=/tmp ");
+        cmd.append("PATH=/usr/local/bin:/usr/bin:/bin LD_LIBRARY_PATH=/usr/lib ");
+        cmd.append("ANDROID_SYSVSHM_SERVER=").append(UnixSocketConfig.SYSVSHM_SERVER_PATH).append(' ');
+        cmd.append("ANDROID_ALSA_SERVER=").append(UnixSocketConfig.ALSA_SERVER_PATH).append(' ');
+        cmd.append("PULSE_SERVER=").append(UnixSocketConfig.PULSE_SERVER_PATH).append(' ');
+        cmd.append("VIRGL_SERVER_PATH=").append(UnixSocketConfig.VIRGL_SERVER_PATH).append("; ");
+        cmd.append("mkdir -p ").append(r).append("/proc ").append(r).append("/sys ").append(r).append("/dev ");
+        cmd.append("mkdir -p ").append(r).append("/tmp/.X11-unix ").append(r).append("/tmp/.virgl ").append(r).append("/tmp/.sound ").append(r).append("/tmp/.sysvshm ").append(r).append("/tmp/.vortek ").append(r).append("/tmp/shm; ");
+        cmd.append("chmod 777 ").append(r).append("/tmp/.X11-unix ").append(r).append("/tmp/.virgl ").append(r).append("/tmp/.sound ").append(r).append("/tmp/.sysvshm ").append(r).append("/tmp/.vortek ").append(r).append("/tmp/shm; ");
+        cmd.append("umount ").append(r).append("/proc 2>/dev/null; umount ").append(r).append("/sys 2>/dev/null; umount ").append(r).append("/dev 2>/dev/null; ");
+        cmd.append("mount --bind /proc ").append(r).append("/proc; ");
+        cmd.append("mount --bind /sys ").append(r).append("/sys; ");
+        cmd.append("mount --bind /dev ").append(r).append("/dev; ");
+        cmd.append("chroot ").append(r);
 
         if (launchCommand != null && !launchCommand.isEmpty()) {
             cmd.append(" /bin/bash -c \"").append(launchCommand).append("\"");
@@ -56,9 +79,9 @@ public class ProotLauncher {
             cmd.append(" /bin/bash --login");
         }
 
-        cmd.append(" && umount ").append(rootDir).append("/proc");
-        cmd.append(" && umount ").append(rootDir).append("/sys");
-        cmd.append(" && umount ").append(rootDir).append("/dev");
+        cmd.append(" ; umount ").append(r).append("/proc");
+        cmd.append(" ; umount ").append(r).append("/sys");
+        cmd.append(" ; umount ").append(r).append("/dev");
         cmd.append("'");
 
         return cmd.toString();
@@ -76,18 +99,5 @@ public class ProotLauncher {
 
         // Fallback
         return PROOT_PATH;
-    }
-
-    public static boolean isProotAvailable(Context context) {
-        File prootFile = new File(resolveProotPath(context));
-        return prootFile.exists() && prootFile.canExecute();
-    }
-
-    public static boolean isChrootAvailable() {
-        return RootAccessHelper.isRootGranted();
-    }
-
-    public static String getContainerType(boolean useChroot) {
-        return useChroot ? "chroot" : "proot";
     }
 }

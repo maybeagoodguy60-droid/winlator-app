@@ -36,6 +36,7 @@ import com.winlator.core.AppUtils;
 import com.winlator.core.Callback;
 import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
+import com.winlator.core.RootAccessHelper;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.PreloaderDialog;
 import com.winlator.core.StringUtils;
@@ -71,6 +72,8 @@ public class ContainerDetailFragment extends Fragment {
     private Spinner sCPUGovernor;
     private Spinner sStartupSelection;
     private Spinner sControlsProfile;
+    private Spinner sLaunchMode;
+    private TextView tvLaunchModeHint;
     private EditText etLaunchCommand;
     private CPUListView cpuListView;
 
@@ -116,6 +119,7 @@ public class ContainerDetailFragment extends Fragment {
         sCPUGovernor = view.findViewById(R.id.SCPUGovernor);
         sStartupSelection = view.findViewById(R.id.SStartupSelection);
         sControlsProfile = view.findViewById(R.id.SControlsProfile);
+        sLaunchMode = view.findViewById(R.id.SLaunchMode);
         etLaunchCommand = view.findViewById(R.id.ETLaunchCommand);
         cpuListView = view.findViewById(R.id.CPUListView);
 
@@ -134,6 +138,7 @@ public class ContainerDetailFragment extends Fragment {
             etLaunchCommand.setText(container.getLaunchCommand());
             sCPUGovernor.setSelection(getCPUGovernorPosition(container.getCpuGovernor()));
             sStartupSelection.setSelection(container.getStartupSelection());
+            sLaunchMode.setSelection(container.getLaunchMode());
         }
         else {
             etName.setText(getString(R.string.container)+"-"+manager.getNextContainerId());
@@ -148,7 +153,9 @@ public class ContainerDetailFragment extends Fragment {
         etRootfsPath = view.findViewById(R.id.ETRootfsPath);
         tvRootfsStatus = view.findViewById(R.id.TVRootfsStatus);
         BTBrowseRootfs = view.findViewById(R.id.BTBrowseRootfs);
+        tvLaunchModeHint = view.findViewById(R.id.TVLaunchModeHint);
 
+        setupLaunchModeListener();
         setupRootfsSourceSpinner();
         setupTabs(view);
 
@@ -170,6 +177,7 @@ public class ContainerDetailFragment extends Fragment {
                 byte startupSelection = (byte)sStartupSelection.getSelectedItemPosition();
                 String desktopEnv = getDesktopEnvId(sDesktopEnv.getSelectedItemPosition());
                 String launchCommand = etLaunchCommand.getText().toString().trim();
+                int launchMode = sLaunchMode.getSelectedItemPosition();
                 String cpuGovernor = sCPUGovernor.getSelectedItem().toString();
 
                 if (isEditMode()) {
@@ -186,6 +194,7 @@ public class ContainerDetailFragment extends Fragment {
                     container.setDesktopEnv(desktopEnv);
                     container.setLaunchCommand(launchCommand);
                     container.setCpuGovernor(cpuGovernor);
+                    container.setLaunchMode(launchMode);
                     container.setRootfsPath(getRootfsPathFromUI());
                     container.putExtra("desktopEnv", desktopEnv);
                     container.putExtra("launchCommand", launchCommand);
@@ -206,6 +215,7 @@ public class ContainerDetailFragment extends Fragment {
                     container.setDesktopEnv(desktopEnv);
                     container.setLaunchCommand(launchCommand);
                     container.setCpuGovernor(cpuGovernor);
+                    container.setLaunchMode(launchMode);
                     container.setRootfsType(LinuxContainer.DEFAULT_ROOTFS_TYPE);
                     String rootfsPath = getRootfsPathFromUI();
                     container.setRootfsPath(rootfsPath);
@@ -224,6 +234,7 @@ public class ContainerDetailFragment extends Fragment {
                     data.put("desktopEnv", desktopEnv);
                     data.put("launchCommand", launchCommand);
                     data.put("cpuGovernor", cpuGovernor);
+                    data.put("launchMode", launchMode);
                     data.put("rootfsType", LinuxContainer.DEFAULT_ROOTFS_TYPE);
                     data.put("rootfsPath", rootfsPath);
 
@@ -357,6 +368,35 @@ public class ContainerDetailFragment extends Fragment {
             case "schedutil": return 4;
             default: return 0;
         }
+    }
+
+    private void setupLaunchModeListener() {
+        sLaunchMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position == LinuxContainer.LAUNCH_MODE_CHROOT) {
+                    if (RootAccessHelper.isRootGranted()) {
+                        tvLaunchModeHint.setText(getString(R.string.launch_mode_hint_chroot));
+                        tvLaunchModeHint.setTextColor(0xFF4CAF50);
+                    }
+                    else {
+                        tvLaunchModeHint.setText(getString(R.string.chroot_requires_root));
+                        tvLaunchModeHint.setTextColor(0xFFFF5252);
+                    }
+                }
+                else if (position == LinuxContainer.LAUNCH_MODE_PROOT) {
+                    tvLaunchModeHint.setText(getString(R.string.launch_mode_hint_proot));
+                    tvLaunchModeHint.setTextColor(0xFFC0C0C0);
+                }
+                else {
+                    tvLaunchModeHint.setText(getString(R.string.launch_mode_hint_auto));
+                    tvLaunchModeHint.setTextColor(0xFFFFC107);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
     }
 
     private void setupRootfsSourceSpinner() {

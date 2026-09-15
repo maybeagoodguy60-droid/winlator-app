@@ -155,4 +155,10 @@
         <item>Import from file</item>
         <item>Use existing path</item>
     </string-array>
+
+    <string-array name="launch_mode_entries">
+        <item>@string/launch_mode_auto</item>
+        <item>@string/launch_mode_proot</item>
+        <item>@string/launch_mode_chroot</item>
+    </string-array>
 </resources>

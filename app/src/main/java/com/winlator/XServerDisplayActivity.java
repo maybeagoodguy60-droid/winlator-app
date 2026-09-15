@@ -376,6 +376,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         envVars.put("MESA_DEBUG", "silent");
         envVars.put("MESA_NO_ERROR", "1");
         FileUtils.clear(rootFS.getTmpDir());
+        RootFSInstaller.prepareSocketDirs(rootFS.getRootDir());
 
         GuestProgramLauncherComponent guestProgramLauncherComponent = new GuestProgramLauncherComponent();
 
@@ -389,6 +390,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 desktopEnv = linuxContainer.getDesktopEnv();
                 launchCommand = linuxContainer.getLaunchCommand();
                 guestProgramLauncherComponent.setCpuGovernor(linuxContainer.getCpuGovernor());
+                guestProgramLauncherComponent.setLaunchMode(linuxContainer.getLaunchMode());
             }
             else {
                 desktopEnv = container.getExtra("desktopEnv", "auto");
@@ -444,6 +446,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             envVars.putAll(overrideEnvVars);
             overrideEnvVars = null;
         }
+        RootFSInstaller.prepareSocketDirs(rootFS.getRootDir());
         environment.startEnvironmentComponents();
 
         envVars.clear();

@@ -368,6 +368,39 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:layout_marginTop="4dp" />
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp">
+
+                    <LinearLayout style="@style/FieldSet">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/launch_mode" />
+
+                        <Spinner
+                            style="@style/ComboBox"
+                            android:id="@+id/SLaunchMode"
+                            android:layout_width="match_parent"
+                            android:entries="@array/launch_mode_entries" />
+                    </LinearLayout>
+
+                    <TextView
+                        style="@style/FieldSetLabel"
+                        android:text="@string/system" />
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/TVLaunchModeHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#FFC107"
+                    android:textSize="12sp"
+                    android:paddingLeft="4dp"
+                    android:paddingRight="4dp"
+                    android:text="@string/launch_mode_hint_auto" />
             </LinearLayout>
 
             <TextView

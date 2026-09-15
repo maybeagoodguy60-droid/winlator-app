@@ -1,22 +1,14 @@
 package com.winlator.xenvironment.components;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Process;
-
 
 import com.winlator.core.Callback;
 import com.winlator.core.EnvVars;
-import com.winlator.core.FileUtils;
 import com.winlator.core.LocaleHelper;
-import com.winlator.core.RootAccessHelper;
-import com.winlator.linux.ProotLauncher;
-import com.winlator.core.GeneralComponents;
-import com.winlator.core.LocaleHelper;
-import com.winlator.core.RootAccessHelper;
-import com.winlator.linux.ProotLauncher;
 import com.winlator.core.ProcessHelper;
-import com.winlator.widget.LogView;
+import com.winlator.linux.LinuxContainer;
+import com.winlator.linux.ProotLauncher;
+import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.RootFS;
@@ -32,9 +24,14 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private static final Object lock = new Object();
 
     private String cpuGovernor;
+    private int launchMode = LinuxContainer.LAUNCH_MODE_AUTO;
 
     public void setCpuGovernor(String cpuGovernor) {
         this.cpuGovernor = cpuGovernor;
+    }
+
+    public void setLaunchMode(int launchMode) {
+        this.launchMode = launchMode;
     }
 
     @Override
@@ -124,8 +121,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         File shmDir = new File(rootDir, "/tmp/shm");
         if (!shmDir.isDirectory()) shmDir.mkdirs();
 
-        boolean useChroot = RootAccessHelper.isRootGranted() && new File(rootDir, "/bin/bash").exists();
-        String command = ProotLauncher.buildCommand(environment.getContext(), rootDir, guestExecutable, useChroot);
+        String command = ProotLauncher.buildCommand(environment.getContext(), rootDir, guestExecutable, launchMode);
 
         return ProcessHelper.exec(command, envVars, rootDir, (status) -> {
             synchronized (lock) {
