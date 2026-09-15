@@ -31,36 +31,30 @@ import com.winlator.alsaserver.ALSAClient;
 import com.winlator.container.AudioDrivers;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
-import com.winlator.container.DXWrappers;
+
 import com.winlator.container.GraphicsDrivers;
 import com.winlator.container.Shortcut;
 import com.winlator.contentdialog.ActiveWindowsDialog;
 import com.winlator.contentdialog.AudioDriverConfigDialog;
 import com.winlator.contentdialog.ContentDialog;
-import com.winlator.contentdialog.DXVKConfigDialog;
+
 import com.winlator.contentdialog.DebugDialog;
 import com.winlator.contentdialog.ScreenEffectDialog;
-import com.winlator.contentdialog.TurnipConfigDialog;
-import com.winlator.contentdialog.VKD3DConfigDialog;
+
 import com.winlator.contentdialog.VirGLConfigDialog;
-import com.winlator.contentdialog.WineD3DConfigDialog;
+
 import com.winlator.core.AppUtils;
 import com.winlator.core.DefaultVersion;
 import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
 import com.winlator.core.GeneralComponents;
+import com.winlator.linux.LinuxSessionLauncher;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.LocaleHelper;
 import com.winlator.core.PreloaderDialog;
 import com.winlator.core.ProcessHelper;
 import com.winlator.core.StringUtils;
 import com.winlator.core.TarCompressorUtils;
-
-import com.winlator.linux.LinuxSessionLauncher;
-
-
-
-
 
 import com.winlator.inputcontrols.ControlsProfile;
 import com.winlator.inputcontrols.ExternalController;
@@ -74,7 +68,7 @@ import com.winlator.widget.MagnifierView;
 import com.winlator.widget.TouchpadView;
 import com.winlator.widget.XServerView;
 
-
+import com.winlator.winhandler.WinHandler;
 import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.RootFS;
 import com.winlator.xenvironment.XEnvironment;
@@ -119,22 +113,18 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     private String audioDriver = Container.DEFAULT_AUDIO_DRIVER;
     private String dxwrapper = Container.DEFAULT_DXWRAPPER;
     private ScreenInfo screenInfo = new ScreenInfo(Container.DEFAULT_SCREEN_SIZE);
-    private KeyValueSet[] dxwrapperConfig;
     private KeyValueSet[] graphicsDriverConfig = {new KeyValueSet(), new KeyValueSet()};
     private KeyValueSet audioDriverConfig;
     private String wincomponents;
-    private WineInfo wineInfo;
     private final EnvVars envVars = new EnvVars();
     private EnvVars overrideEnvVars;
     private ClipboardManager clipboardManager;
     private SharedPreferences preferences;
-    private final WinHandler winHandler = new WinHandler(this);
     private float globalCursorSpeed = 1.0f;
     private boolean capturePointerOnExternalMouse = true;
     private MagnifierView magnifierView;
     private DebugDialog debugDialog;
     public int frameRatingWindowId = -1;
-    private Win32AppWorkarounds win32AppWorkarounds;
     private String screenEffectProfile;
 
     @Override
@@ -148,9 +138,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         final PreloaderDialog preloaderDialog = new PreloaderDialog(this);
         preferences = PreferenceManager.getDefaultSharedPreferences(this);
-        boolean useAndroidClipboardOnWine = preferences.getBoolean("use_android_clipboard_on_wine", false);
-        clipboardManager = useAndroidClipboardOnWine ? (ClipboardManager)getSystemService(CLIPBOARD_SERVICE) : null;
-
         drawerLayout = findViewById(R.id.DrawerLayout);
         drawerLayout.setOnApplyWindowInsetsListener((view, windowInsets) -> windowInsets.replaceSystemWindowInsets(0, 0, 0, 0));
         drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED);
@@ -170,27 +157,10 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             container = containerManager.getContainerById(getIntent().getIntExtra("container_id", 0));
             containerManager.activateContainer(container);
 
-            boolean wineprefixNeedsUpdate = container.getExtra("wineprefixNeedsUpdate").equals("t");
-            if (wineprefixNeedsUpdate) {
-                preloaderDialog.show(R.string.updating_system_files);
-                WineUtils.updateWineprefix(this, (status) -> {
-                    if (status == 0) {
-                        container.putExtra("wineprefixNeedsUpdate", null);
-                        container.putExtra("wincomponents", null);
-                        container.saveData();
-                        AppUtils.restartActivity(this);
-                    }
                     else finish();
                 });
                 return;
             }
-
-            win32AppWorkarounds = new Win32AppWorkarounds(this);
-
-            String wineVersion = container.getWineVersion();
-            wineInfo = WineInfo.fromIdentifier(this, wineVersion);
-
-            if (wineInfo != WineInfo.MAIN_WINE_INFO) rootFS.setWinePath(wineInfo.path);
 
             String shortcutPath = getIntent().getStringExtra("shortcut_path");
             if (shortcutPath != null && !shortcutPath.isEmpty()) shortcut = new Shortcut(container, new File(shortcutPath));
@@ -234,7 +204,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         inputControlsManager = new InputControlsManager(this);
         xServer = new XServer(this, screenInfo);
-        xServer.setWinHandler(winHandler);
+        // WinHandler removed for Linux X
         final boolean[] flags = {false, shortcut != null || getIntent().hasExtra("exec_path")};
         xServer.windowManager.addOnWindowModificationListener(new WindowManager.OnWindowModificationListener() {
             @Override
@@ -255,8 +225,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                     if (window.attributes.isEnabled()) window.disableAllDescendants();
                 }
 
-                if (win32AppWorkarounds != null) win32AppWorkarounds.applyWindowWorkarounds(window);
-                changeFrameRatingVisibility(window, true);
+                        changeFrameRatingVisibility(window, true);
             }
 
             @Override
@@ -269,9 +238,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
         Executors.newSingleThreadExecutor().execute(() -> {
             if (!isGenerateWineprefix()) {
-                setupWineSystemFiles();
+                // Wine system files removed for Linux X
                 extractGraphicsDriverFiles();
-                changeWineAudioDriver();
+                // Wine audio driver removed for Linux X
             }
             setupXEnvironment();
         });
@@ -438,62 +407,12 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         ForegroundService.stopSession(this);
     }
 
-    private void setupWineSystemFiles() {
-        String appVersion = String.valueOf(AppUtils.getVersionCode(this));
-        String rfsVersion = String.valueOf(rootFS.getVersion());
-        boolean containerDataChanged = false;
-
-        boolean wineprefixWasUpdated = WineUtils.isWineprefixWasUpdated(container);
-        if (!container.getExtra("appVersion").equals(appVersion) || !container.getExtra("rfsVersion").equals(rfsVersion) || wineprefixWasUpdated) {
-            applyGeneralPatches(container);
-            container.putExtra("appVersion", appVersion);
-            container.putExtra("rfsVersion", rfsVersion);
-            containerDataChanged = true;
-        }
-
-        if (verifyUserRegistry()) containerDataChanged = true;
-        if (extractDXWrapperFiles()) containerDataChanged = true;
-
-        if (!wincomponents.equals(container.getExtra("wincomponents"))) {
-            extractWinComponentFiles();
-            container.putExtra("wincomponents", wincomponents);
-            containerDataChanged = true;
-        }
-
-        String desktopTheme = container.getDesktopTheme();
-        if (!(desktopTheme+","+xServer.screenInfo).equals(container.getExtra("desktopTheme"))) {
-            WineThemeManager.apply(this, new WineThemeManager.ThemeInfo(desktopTheme), xServer.screenInfo);
-            container.putExtra("desktopTheme", desktopTheme+","+xServer.screenInfo);
-            containerDataChanged = true;
-        }
-
-        WineStartMenuCreator.create(this, container);
-        WineUtils.createDosdevicesSymlinks(container, true);
-
-        String startupSelection = String.valueOf(container.getStartupSelection());
-        if (!startupSelection.equals(container.getExtra("startupSelection")) || wineprefixWasUpdated) {
-            WineUtils.changeServicesStatus(container, container.getStartupSelection());
-            container.putExtra("startupSelection", startupSelection);
-            containerDataChanged = true;
-        }
-
-        boolean openAndroidBrowserFromWine = preferences.getBoolean("open_android_browser_from_wine", true);
-        String openAndroidBrowserFromWineStr = openAndroidBrowserFromWine ? "t" : "f";
-        if (!openAndroidBrowserFromWineStr.equals(container.getExtra("openAndroidBrowserFromWine")) || wineprefixWasUpdated) {
-            WineUtils.changeBrowsersRegistryKey(container, openAndroidBrowserFromWine);
-            container.putExtra("openAndroidBrowserFromWine", openAndroidBrowserFromWineStr);
-            containerDataChanged = true;
-        }
-
-        if (containerDataChanged) container.saveData();
-    }
-
     private void setupXEnvironment() {
         String rootPath = rootFS.getRootDir().getPath();
         envVars.put("MESA_DEBUG", "silent");
         envVars.put("MESA_NO_ERROR", "1");
-        envVars.put("WINEPREFIX", rootPath+RootFS.WINEPREFIX);
-        envVars.put("WINE_DO_NOT_CREATE_DXGI_DEVICE_MANAGER", "1");
+        // Wine prefix removed for Linux X
+        
 
         boolean enableWineDebug = preferences.getBoolean("enable_wine_debug", false);
         String wineDebugChannels = preferences.getString("wine_debug_channels", SettingsFragment.DEFAULT_WINE_DEBUG_CHANNELS);
@@ -514,7 +433,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             if (shortcut != null) envVars.putAll(shortcut.getExtra("envVars"));
             if (!envVars.has("WINEESYNC")) envVars.put("WINEESYNC", "1");
 
-            guestProgramLauncherComponent.setBox64Preset(shortcut != null ? shortcut.getExtra("box64Preset", container.getBox64Preset()) : container.getBox64Preset());
         }
 
         environment = new XEnvironment(this, rootFS);
@@ -556,9 +474,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         environment.addComponent(guestProgramLauncherComponent);
 
         if (isGenerateWineprefix()) {
-            wineInfo = getIntent().getParcelableExtra("wine_info");
-            if (wineInfo != null) WineInstaller.generateWineprefix(wineInfo, environment);
-        }
+            }
         if (overrideEnvVars != null) {
             envVars.putAll(overrideEnvVars);
             overrideEnvVars = null;
@@ -801,195 +717,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         return inputControlsView;
     }
 
-    private boolean extractDXWrapperFiles() {
-        String cacheId = "";
-        if (dxwrapper.equals(DXWrappers.DXVK)) {
-            DXVKConfigDialog.setEnvVars(this, dxwrapperConfig[0], envVars);
-            cacheId += dxwrapper+"-"+dxwrapperConfig[0].get("version", DefaultVersion.DXVK(graphicsDriver[0]));
-        }
-        else if (dxwrapper.equals(DXWrappers.WINED3D)) {
-            WineD3DConfigDialog.setEnvVars(dxwrapperConfig[0], envVars);
-            cacheId += dxwrapper+"-"+dxwrapperConfig[0].get("version", DefaultVersion.WINED3D);
-        }
-
-        String ddrawWrapper = dxwrapperConfig[0].get("ddrawWrapper", DXWrappers.WINED3D);
-        cacheId += "-"+DXWrappers.VKD3D+"-"+dxwrapperConfig[1].get("version", DefaultVersion.VKD3D)+"-"+ddrawWrapper;
-        boolean changed = !cacheId.equals(container.getExtra("dxwrapper"));
-        VKD3DConfigDialog.setEnvVars(dxwrapperConfig[1], envVars);
-
-        if (ddrawWrapper.equals(DXWrappers.CNC_DDRAW)) envVars.put("CNC_DDRAW_CONFIG_FILE", "C:\\ProgramData\\cnc-ddraw\\ddraw.ini");
-
-        if (!changed) return false;
-        container.putExtra("dxwrapper", cacheId);
-
-        File rootDir = rootFS.getRootDir();
-        File windowsDir = new File(rootDir, RootFS.WINEPREFIX+"/drive_c/windows");
-
-        if (dxwrapper.equals(DXWrappers.WINED3D)) {
-            String version = dxwrapperConfig[0].get("version", DefaultVersion.WINED3D);
-            if (version.equals(WineInfo.MAIN_WINE_VERSION)) {
-                final String[] dlls = {"d3d8.dll", "d3d9.dll", "d3d10.dll", "d3d10_1.dll", "d3d10core.dll", "d3d11.dll", "d3d12.dll", "d3d12core.dll", "dxgi.dll", "ddraw.dll", "wined3d.dll"};
-                restoreBuiltinDllFiles(dlls);
-            }
-            else GeneralComponents.extractFile(GeneralComponents.Type.WINED3D, this, version, DefaultVersion.WINED3D);
-        }
-        else if (dxwrapper.equals(DXWrappers.DXVK)) {
-            final boolean[] hasD3D8DllFile = {false};
-            final boolean[] hasD3D10DllFile = {false};
-
-            GeneralComponents.extractFile(GeneralComponents.Type.DXVK, this, dxwrapperConfig[0].get("version"), DefaultVersion.DXVK(graphicsDriver[0]), (destination, size) -> {
-                String name = destination.getName();
-                if (name.equals("d3d10.dll")) {
-                    hasD3D10DllFile[0] = true;
-                }
-                else if (name.equals("d3d8.dll")) {
-                    hasD3D8DllFile[0] = true;
-                }
-                return destination;
-            });
-
-            if (!hasD3D8DllFile[0]) {
-                TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "dxwrapper/d8vk-"+DefaultVersion.D8VK+".tzst", windowsDir);
-            }
-            if (!hasD3D10DllFile[0]) restoreBuiltinDllFiles("d3d10.dll", "d3d10_1.dll");
-        }
-
-        GeneralComponents.extractFile(GeneralComponents.Type.VKD3D, this, dxwrapperConfig[1].get("version"), DefaultVersion.VKD3D);
-
-        File containerSysWoW64Dir = new File(rootDir, RootFS.WINEPREFIX+"/drive_c/windows/syswow64");
-        FileUtils.delete(new File(containerSysWoW64Dir, "ddraw_.dll"));
-
-        switch (ddrawWrapper) {
-            case DXWrappers.CNC_DDRAW:
-                final String assetDir = "dxwrapper/cnc-ddraw-"+DefaultVersion.CNC_DDRAW;
-                File configFile = new File(rootDir, RootFS.WINEPREFIX+"/drive_c/ProgramData/cnc-ddraw/ddraw.ini");
-                if (!configFile.isFile()) FileUtils.copy(this, assetDir+"/ddraw.ini", configFile);
-                File shadersDir = new File(rootDir, RootFS.WINEPREFIX+"/drive_c/ProgramData/cnc-ddraw/Shaders");
-                FileUtils.delete(shadersDir);
-                FileUtils.copy(this, assetDir+"/Shaders", shadersDir);
-                TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, assetDir+"/ddraw.tzst", windowsDir);
-                break;
-            case DXWrappers.D7VK:
-                restoreBuiltinDllFiles("ddraw.dll");
-                (new File(containerSysWoW64Dir, "ddraw.dll")).renameTo(new File(containerSysWoW64Dir, "ddraw_.dll"));
-                TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "dxwrapper/d7vk-"+DefaultVersion.D7VK+".tzst", windowsDir);
-                break;
-            default:
-                restoreBuiltinDllFiles("ddraw.dll");
-                break;
-        }
-        return true;
-    }
-
-    private void extractWinComponentFiles() {
-        File rootDir = rootFS.getRootDir();
-        File windowsDir = new File(rootDir, RootFS.WINEPREFIX+"/drive_c/windows");
-        File systemRegFile = new File(rootDir, RootFS.WINEPREFIX+"/system.reg");
-
-        try {
-            JSONObject wincomponentsJSONObject = new JSONObject(FileUtils.readString(this, "wincomponents/wincomponents.json"));
-            Iterator<String[]> oldWinComponentsIter = new KeyValueSet(container.getExtra("wincomponents", Container.FALLBACK_WINCOMPONENTS)).iterator();
-            ArrayList<String> builtinDlls = new ArrayList<>();
-
-            for (String[] wincomponent : new KeyValueSet(wincomponents)) {
-                if (wincomponent[1].equals(oldWinComponentsIter.next()[1])) continue;
-                String identifier = wincomponent[0];
-                boolean useNative = wincomponent[1].equals("1");
-
-                if (useNative) {
-                    TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "wincomponents/"+identifier+".tzst", windowsDir);
-                }
-                else {
-                    JSONObject wincomponentJSONObject = wincomponentsJSONObject.getJSONObject(identifier);
-                    if (wincomponentJSONObject.getBoolean("restoreBuiltinDlls")) {
-                        JSONArray dlnames = wincomponentJSONObject.getJSONArray("dlnames");
-                        for (int i = 0; i < dlnames.length(); i++) {
-                            String dlname = dlnames.getString(i);
-                            builtinDlls.add(!dlname.endsWith(".exe") ? dlname+".dll" : dlname);
-                        }
-                    }
-                    else {
-                        TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "wincomponents/"+identifier+".tzst", windowsDir, (destination, size) -> {
-                            String name = destination.getName();
-                            if (name.endsWith(".dll") || name.endsWith(".manifest") || name.endsWith("_deadbeef")) FileUtils.delete(destination);
-                            return null;
-                        });
-                    }
-                }
-
-                WineUtils.setWinComponentRegistryKeys(systemRegFile, identifier, useNative);
-            }
-
-            if (!builtinDlls.isEmpty()) restoreBuiltinDllFiles(builtinDlls.toArray(new String[0]));
-            WineUtils.overrideWinComponentDlls(this, container, wincomponents);
-        }
-        catch (JSONException e) {}
-    }
-
-    private void restoreBuiltinDllFiles(final String... dlls) {
-        File rootDir = rootFS.getRootDir();
-        File wineDir = new File(rootDir, rootFS.getWinePath());
-        File wineSystem32Dir = new File(wineDir, "/lib/wine/x86_64-windows");
-        File wineSysWoW64Dir = new File(wineDir, "/lib/wine/i386-windows");
-        File containerSystem32Dir = new File(rootDir, RootFS.WINEPREFIX+"/drive_c/windows/system32");
-        File containerSysWoW64Dir = new File(rootDir, RootFS.WINEPREFIX+"/drive_c/windows/syswow64");;
-
-        for (String dll : dlls) {
-            FileUtils.copy(new File(wineSysWoW64Dir, dll), new File(containerSysWoW64Dir, dll));
-            FileUtils.copy(new File(wineSystem32Dir, dll), new File(containerSystem32Dir, dll));
-        }
-    }
-
-    private boolean isGenerateWineprefix() {
-        return getIntent().getBooleanExtra("generate_wineprefix", false);
-    }
-
-    private String getWineStartCommand() {
-        String cmdArgs = "";
-        String execPath = null;
-        String execArgs = "";
-
-        if (shortcut != null) {
-            execArgs = shortcut.getExtra("execArgs");
-            execArgs = !execArgs.isEmpty() ? " "+execArgs : "";
-
-            if (shortcut.isLinkPath()) {
-                cmdArgs = "\""+shortcut.path+"\""+execArgs;
-            }
-            else execPath = shortcut.path;
-        }
-        else {
-            Intent intent = getIntent();
-            if (intent.hasExtra("exec_path")) {
-                execPath = WineUtils.unixToDOSPath(intent.getStringExtra("exec_path"), container);
-
-                if (execPath.endsWith(".lnk")) {
-                    cmdArgs = "\""+execPath+"\"";
-                    execPath = null;
-                }
-            }
-        }
-
-        if (execPath != null) {
-            String execDir = FileUtils.getDirname(execPath);
-            String filename = FileUtils.getName(execPath);
-            int dotIndex, spaceIndex;
-            if ((dotIndex = filename.lastIndexOf(".")) != -1 && (spaceIndex = filename.indexOf(" ", dotIndex)) != -1) {
-                execArgs = filename.substring(spaceIndex+1)+execArgs;
-                filename = filename.substring(0, spaceIndex);
-            }
-            cmdArgs = "/dir "+StringUtils.escapeDOSPath(execDir)+" \""+filename+"\""+execArgs;
-        }
-
-        if (cmdArgs.isEmpty()) cmdArgs = "/dir C:\\windows \"wfm.exe\"";
-
-        if (overrideEnvVars != null && overrideEnvVars.has("EXTRA_EXEC_ARGS")) {
-            cmdArgs += " "+overrideEnvVars.get("EXTRA_EXEC_ARGS");
-            overrideEnvVars.remove("EXTRA_EXEC_ARGS");
-        }
-        return "C:\\windows\\winhandler.exe "+cmdArgs;
-    }
-
     public XServer getXServer() {
         return xServer;
     }
@@ -1051,34 +778,6 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         this.screenEffectProfile = screenEffectProfile;
     }
 
-    private void changeWineAudioDriver() {
-        if (!audioDriver.equals(container.getExtra("audioDriver"))) {
-            File rootDir = rootFS.getRootDir();
-            File userRegFile = new File(rootDir, RootFS.WINEPREFIX+"/user.reg");
-            try (WineRegistryEditor registryEditor = new WineRegistryEditor(userRegFile)) {
-                if (audioDriver.equals(AudioDrivers.ALSA)) {
-                    registryEditor.setStringValue("Software\\Wine\\Drivers", "Audio", "alsa");
-                }
-                else if (audioDriver.equals(AudioDrivers.PULSEAUDIO)) {
-                    registryEditor.setStringValue("Software\\Wine\\Drivers", "Audio", "pulse");
-                }
-            }
-            container.putExtra("audioDriver", audioDriver);
-            container.saveData();
-        }
-    }
-
-    private void applyGeneralPatches(Container container) {
-        File rootDir = rootFS.getRootDir();
-        FileUtils.delete(new File(rootDir, "/opt/apps"));
-        TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "rootfs_patches.tzst", rootDir);
-        TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, this, "pulseaudio.tzst", new File(getFilesDir(), "pulseaudio"));
-        WineUtils.applySystemTweaks(this, wineInfo);
-        container.putExtra("dxwrapper", null);
-        container.putExtra("desktopTheme", null);
-        SettingsFragment.resetPreferenceVersions(this);
-    }
-
     public void changeFrameRatingVisibility(Window window, boolean visible) {
         if (frameRating == null) return;
         if (visible) {
@@ -1109,18 +808,4 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
     }
 
-    public boolean verifyUserRegistry() {
-        File userRegFile = new File(rootFS.getRootDir(), RootFS.WINEPREFIX+"/user.reg");
-        String lastModified = String.valueOf(userRegFile.lastModified());
-
-        if (!lastModified.equals(container.getExtra("userRegLastModified"))) {
-            try (WineRegistryEditor registryEditor = new WineRegistryEditor(userRegFile)) {
-                registryEditor.removeKey("Software\\Wow6432Node\\Wine", true);
-            }
-
-            container.putExtra("userRegLastModified", lastModified);
-            return true;
-        }
-        else return false;
-    }
 }
