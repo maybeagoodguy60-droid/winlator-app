@@ -53,6 +53,10 @@ public class ContainerDetailFragment extends Fragment {
     private LinuxContainer container;
     private PreloaderDialog preloaderDialog;
     private EnvVarsView envVarsView;
+    private Spinner sRootfsSource;
+    private EditText etRootfsPath;
+    private TextView tvRootfsStatus;
+    private Button BTBrowseRootfs;
     private GraphicsDriverPicker graphicsDriverPicker;
     private LinearLayout llTabEnvVars;
     private LinearLayout llTabAdvanced;
@@ -137,6 +141,12 @@ public class ContainerDetailFragment extends Fragment {
 
         cpuListView.setCheckedCPUList(isEditMode() ? container.getCPUList(true) : Container.getFallbackCPUList());
 
+        sRootfsSource = view.findViewById(R.id.SRootfsSource);
+        etRootfsPath = view.findViewById(R.id.ETRootfsPath);
+        tvRootfsStatus = view.findViewById(R.id.TVRootfsStatus);
+        BTBrowseRootfs = view.findViewById(R.id.BTBrowseRootfs);
+
+        setupRootfsSourceSpinner();
         setupTabs(view);
 
         view.findViewById(R.id.BTAudioDriverConfig).setOnClickListener((v) -> {
@@ -332,6 +342,71 @@ public class ContainerDetailFragment extends Fragment {
             case "conservative": return 3;
             case "schedutil": return 4;
             default: return 0;
+        }
+    }
+
+    private void setupRootfsSourceSpinner() {
+        String[] sources = getResources().getStringArray(R.array.rootfs_source_entries);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, sources);
+        sRootfsSource.setAdapter(adapter);
+
+        // Set current value
+        if (isEditMode()) {
+            String rootfsPath = container.getRootfsPath();
+            if (rootfsPath != null && !rootfsPath.isEmpty()) {
+                etRootfsPath.setText(rootfsPath);
+                tvRootfsStatus.setText(getString(R.string.rootfs_validate_ok));
+                tvRootfsStatus.setTextColor(0xFF4CAF50);
+            }
+        }
+
+        sRootfsSource.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String source = sources[position];
+                if (position == 0) { // Bundled
+                    etRootfsPath.setEnabled(false);
+                    etRootfsPath.setText("/data/data/com.winlator/files/rootfs");
+                    BTBrowseRootfs.setEnabled(false);
+                    validateRootfsPath("/data/data/com.winlator/files/rootfs");
+                } else if (position == 1) { // Import from file
+                    etRootfsPath.setEnabled(false);
+                    etRootfsPath.setText("Tap Browse to select");
+                    BTBrowseRootfs.setEnabled(true);
+                    tvRootfsStatus.setText("Select a .tar.gz rootfs file");
+                    tvRootfsStatus.setTextColor(0xFFFFC107);
+                } else { // Existing path
+                    etRootfsPath.setEnabled(true);
+                    etRootfsPath.setText("");
+                    BTrowseRootfs.setEnabled(true);
+                    tvRootfsStatus.setText(getString(R.string.rootfs_select_hint));
+                    tvRootfsStatus.setTextColor(0xFF888888);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        BTBrowseRootfs.setOnClickListener((v) -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("*\/*");
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(intent, "Select Rootfs"), 1001);
+        });
+    }
+
+    private void validateRootfsPath(String path) {
+        File rootDir = new File(path);
+        if (rootDir.isDirectory() && new File(rootDir, "/bin/bash").exists()) {
+            tvRootfsStatus.setText(getString(R.string.rootfs_validate_ok));
+            tvRootfsStatus.setTextColor(0xFF4CAF50);
+        } else if (rootDir.isDirectory() && new File(rootDir, "/etc/os-release").exists()) {
+            tvRootfsStatus.setText(getString(R.string.rootfs_validate_ok));
+            tvRootfsStatus.setTextColor(0xFF4CAF50);
+        } else {
+            tvRootfsStatus.setText(getString(R.string.rootfs_validate_fail));
+            tvRootfsStatus.setTextColor(0xFFFF5252);
         }
     }
 }

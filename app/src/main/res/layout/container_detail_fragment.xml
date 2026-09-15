@@ -148,6 +148,67 @@
                 android:layout_width="match_parent"
                 android:entries="@array/hud_mode_entries" />
 
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginTop="12dp"
+                android:padding="12dp"
+                android:background="@drawable/layout_background">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Rootfs Source"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:layout_marginBottom="8dp" />
+
+                <Spinner
+                    android:id="@+id/SRootfsSource"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:entries="@array/rootfs_source_entries" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp">
+
+                    <EditText
+                        android:id="@+id/ETRootfsPath"
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="1"
+                        android:hint="Path to rootfs directory"
+                        android:textColor="#FFFFFF"
+                        android:textColorHint="#888888"
+                        android:inputType="text"
+                        android:singleLine="true"
+                        android:padding="8dp"
+                        android:background="@drawable/edittext_background" />
+
+                    <Button
+                        android:id="@+id/BTBrowseRootfs"
+                        android:layout_width="wrap_content"
+                        android:layout_height="40dp"
+                        android:text="Browse"
+                        android:layout_marginStart="8dp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/TVRootfsStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="#888888"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/TabLayout"
                 android:layout_width="match_parent"

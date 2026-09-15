@@ -194,4 +194,9 @@
 
 
 
+<string-array name="rootfs_source_entries">
+        <item>Bundled</item>
+        <item>Import from file</item>
+        <item>Use existing path</item>
+    </string-array>
 </resources>
