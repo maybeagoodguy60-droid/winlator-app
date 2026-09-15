@@ -384,7 +384,9 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
 
             String guestExecutable = LinuxSessionLauncher.buildLaunchCommand(rootFS.getRootDir(), container.getExtra("desktopEnv", "auto"), container.getExtra("launchCommand", ""));
             guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
-            guestProgramLauncherComponent.setCpuGovernor(container.getCpuGovernor());
+            if (container instanceof LinuxContainer) {
+                guestProgramLauncherComponent.setCpuGovernor(((LinuxContainer) container).getCpuGovernor());
+            }
 
             envVars.putAll(container.getEnvVars());
 
