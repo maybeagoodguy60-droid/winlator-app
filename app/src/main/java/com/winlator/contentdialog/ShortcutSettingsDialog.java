@@ -69,17 +69,6 @@ public class ShortcutSettingsDialog extends ContentDialog {
         final CheckBox cbForceFullscreen = findViewById(R.id.CBForceFullscreen);
         cbForceFullscreen.setChecked(shortcut.getExtra("forceFullscreen", "0").equals("1"));
 
-        final Spinner sBox64Preset = findViewById(R.id.SBox64Preset);
-        String[] box64Presets = {"default"};
-        sBox64Preset.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, box64Presets));
-        String currentBox64Preset = shortcut.getExtra("box64Preset", shortcut.container.getBox64Preset());
-        for (int i = 0; i < box64Presets.length; i++) {
-            if (box64Presets[i].equals(currentBox64Preset)) {
-                sBox64Preset.setSelection(i, false);
-                break;
-            }
-        }
-
         final Spinner sControlsProfile = findViewById(R.id.SControlsProfile);
         loadControlsProfileSpinner(sControlsProfile, shortcut.getExtra("controlsProfile", "0"));
 
@@ -88,7 +77,7 @@ public class ShortcutSettingsDialog extends ContentDialog {
 
         final EnvVarsView envVarsView = createEnvVarsTab();
 
-        AppUtils.setupTabLayout(getContentView(), R.id.TabLayout, R.id.LLTabWinComponents, R.id.LLTabEnvVars, R.id.LLTabAdvanced);
+        AppUtils.setupTabLayout(getContentView(), R.id.TabLayout, R.id.LLTabEnvVars, R.id.LLTabAdvanced);
 
         findViewById(R.id.BTExtraArgsMenu).setOnClickListener((v) -> {
             PopupMenu popupMenu = new PopupMenu(context, v);
@@ -121,9 +110,6 @@ public class ShortcutSettingsDialog extends ContentDialog {
 
             String envVars = envVarsView.getEnvVars();
             shortcut.putExtra("envVars", !envVars.isEmpty() ? envVars : null);
-
-            String box64Preset = String.valueOf(sBox64Preset.getSelectedItem());
-            shortcut.putExtra("box64Preset", !box64Preset.equals(shortcut.container.getBox64Preset()) ? box64Preset : null);
 
             ArrayList<ControlsProfile> profiles = inputControlsManager.getProfiles(true);
             int controlsProfile = sControlsProfile.getSelectedItemPosition() > 0 ? profiles.get(sControlsProfile.getSelectedItemPosition()-1).id : 0;
