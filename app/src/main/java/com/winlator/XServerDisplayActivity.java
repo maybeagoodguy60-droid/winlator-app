@@ -602,7 +602,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         if (graphicsDriver[0].equals(GraphicsDrivers.TURNIP)) {
             if (changed) {
                 String version = graphicsDriverConfig[0].get("version", DefaultVersion.TURNIP);
-                GeneralComponents.extractFile(GeneralComponents.Type.TURNIP, this, version, DefaultVersion.TURNIP);
+                GeneralComponents.extractFileTo(GeneralComponents.Type.TURNIP, this, version, DefaultVersion.TURNIP, rootDir);
             }
         }
         else if (graphicsDriver[0].equals(GraphicsDrivers.VORTEK) && (changed || MainActivity.DEBUG_MODE)) {

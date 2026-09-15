@@ -206,6 +206,11 @@ public abstract class GeneralComponents {
         extractFile(type, context, identifier, defaultVersion, null);
     }
 
+    public static void extractFileTo(Type type, Context context, String identifier, String defaultVersion, File customDestination) {
+        String sourcePath = type.assetFolder()+"/"+type.lowerName()+"-"+identifier+".tzst";
+        TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, sourcePath, customDestination);
+    }
+
     public static void extractFile(Type type, Context context, String identifier, String defaultVersion, TarCompressorUtils.OnExtractFileListener onExtractFileListener) {
         File destination = type.getDestination(context);
 
