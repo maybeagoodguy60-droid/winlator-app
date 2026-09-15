@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import java.io.File;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -378,7 +379,7 @@ public class ContainerDetailFragment extends Fragment {
                 } else { // Existing path
                     etRootfsPath.setEnabled(true);
                     etRootfsPath.setText("");
-                    BTrowseRootfs.setEnabled(true);
+                    BTBrowseRootfs.setEnabled(true);
                     tvRootfsStatus.setText(getString(R.string.rootfs_select_hint));
                     tvRootfsStatus.setTextColor(0xFF888888);
                 }
@@ -390,7 +391,7 @@ public class ContainerDetailFragment extends Fragment {
 
         BTBrowseRootfs.setOnClickListener((v) -> {
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("*\/*");
+            intent.setType("*/*");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             startActivityForResult(Intent.createChooser(intent, "Select Rootfs"), 1001);
         });
