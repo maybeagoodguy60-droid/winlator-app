@@ -5,8 +5,6 @@ import com.winlator.core.AppUtils;
 import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
 import com.winlator.core.KeyValueSet;
-import com.winlator.core.WineInfo;
-import com.winlator.core.WineThemeManager;
 import com.winlator.widget.FrameRating;
 import com.winlator.xenvironment.RootFS;
 
@@ -20,7 +18,7 @@ public class Container {
     public static final String DEFAULT_ENV_VARS = "ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=1 TU_DEBUG=noconform";
     public static final String DEFAULT_SCREEN_SIZE = "1280x720";
     public static final String DEFAULT_AUDIO_DRIVER = AudioDrivers.ALSA;
-    public static final String DEFAULT_DXWRAPPER = DXWrappers.DXVK;
+    public static final String DEFAULT_DXWRAPPER = "DXVK";
     public static final String DEFAULT_WINCOMPONENTS = "direct3d=1,directsound=1,directmusic=1,directshow=0,directplay=0,xaudio=1,vcrun2005=0,vcrun2010=1,wmdecoder=1";
     public static final String FALLBACK_WINCOMPONENTS = "direct3d=0,directsound=0,directmusic=0,directshow=0,directplay=0,xaudio=0,vcrun2005=0,vcrun2010=0,wmdecoder=0";
     public static final String DEFAULT_DRIVES = "D:"+AppUtils.DIRECTORY_DOWNLOADS +"E:"+AppUtils.INTERNAL_STORAGE;
@@ -40,12 +38,12 @@ public class Container {
     private String wincomponents = DEFAULT_WINCOMPONENTS;
     private String audioDriver = DEFAULT_AUDIO_DRIVER;
     private String drives = DEFAULT_DRIVES;
-    private String wineVersion = WineInfo.MAIN_WINE_INFO.identifier();
+    private String wineVersion = "";
     private byte hudMode = (byte)FrameRating.Mode.DISABLED.ordinal();
     private byte startupSelection = STARTUP_SELECTION_ESSENTIAL;
     private String cpuList;
     private String cpuListWoW64;
-    private String desktopTheme = WineThemeManager.DEFAULT_DESKTOP_THEME;
+    private String desktopTheme = "";
     private String box64Preset = Box64Preset.DEFAULT;
     private File rootDir;
     private JSONObject extraData;
@@ -305,14 +303,14 @@ public class Container {
             data.put("desktopTheme", desktopTheme);
             data.put("extraData", extraData);
 
-            if (!WineInfo.isMainWineVersion(wineVersion)) data.put("wineVersion", wineVersion);
+            data.put("wineVersion", wineVersion);
             FileUtils.writeString(getConfigFile(), data.toString());
         }
         catch (JSONException e) {}
     }
 
     public void loadData(JSONObject data) throws JSONException {
-        wineVersion = WineInfo.MAIN_WINE_INFO.identifier();
+        wineVersion = "";
         dxwrapperConfig = "";
         graphicsDriverConfig = "";
         audioDriverConfig = "";
