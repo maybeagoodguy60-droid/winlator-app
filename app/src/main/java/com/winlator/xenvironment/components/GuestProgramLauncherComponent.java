@@ -31,11 +31,39 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private Callback<Integer> terminationCallback;
     private static final Object lock = new Object();
 
+    private String cpuGovernor;
+
+    public void setCpuGovernor(String cpuGovernor) {
+        this.cpuGovernor = cpuGovernor;
+    }
+
     @Override
     public void start() {
         synchronized (lock) {
             stop();
+            if (cpuGovernor != null && !cpuGovernor.isEmpty()) {
+                applyCpuGovernor(cpuGovernor);
+            }
             pid = execGuestProgram();
+        }
+    }
+
+    private void applyCpuGovernor(String governor) {
+        try {
+            File cpuDir = new File("/sys/devices/system/cpu");
+            File[] policyDirs = cpuDir.listFiles(d -> d.getName().startsWith("cpufreq"));
+            if (policyDirs != null) {
+                for (File policyDir : policyDirs) {
+                    File governorFile = new File(policyDir, "scaling_governor");
+                    if (governorFile.exists()) {
+                        java.io.FileWriter fw = new java.io.FileWriter(governorFile);
+                        fw.write(governor);
+                        fw.close();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Governor write may fail without root - silently ignore
         }
     }
 
