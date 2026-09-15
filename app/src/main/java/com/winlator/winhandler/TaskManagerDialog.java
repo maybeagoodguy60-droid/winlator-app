@@ -95,7 +95,7 @@ public class TaskManagerDialog extends ContentDialog implements OnGetProcessInfo
         cancelButton.setText(R.string.new_task);
         cancelButton.setOnClickListener((v) -> {
             dismiss();
-            ContentDialog.prompt(activity, R.string.new_task, "taskmgr.exe", (command) -> // exec removed for Linux X);
+            ContentDialog.prompt(activity, R.string.new_task, "taskmgr.exe", (command) -> { /* exec removed for Linux X */ });
         });
 
         setOnDismissListener((dialog) -> {

@@ -232,7 +232,9 @@ public abstract class GeneralComponents {
         final Activity activity = (Activity)spinner.getContext();
         File destination = new File(getComponentDir(type, activity), filename);
         if (destination.isFile()) destination.delete();
-        downloadFile(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/"+filename), destination); boolean success = destination.exists(); {
+        downloadFile(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/"+filename), destination);
+                boolean success = destination.exists();
+                if (success) {
             if (success) {
                 loadSpinner(type, spinner, parseDisplayText(type, filename), defaultItem);
             }
@@ -331,7 +333,8 @@ public abstract class GeneralComponents {
         final Activity activity = (Activity)spinner.getContext();
         final PreloaderDialog preloaderDialog = new PreloaderDialog(activity);
         preloaderDialog.show(R.string.loading);
-        String content = downloadString(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/index.txt")); activity.runOnUiThread(() -> {
+        String content = downloadString(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/index.txt"));
+        activity.runOnUiThread(() -> {
             preloaderDialog.close();
             if (content != null) {
                 if (content.isEmpty()) {
