@@ -349,7 +349,7 @@ public class ContainerDetailFragment extends Fragment {
 
     private void setupRootfsSourceSpinner() {
         String[] sources = getResources().getStringArray(R.array.rootfs_source_entries);
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, sources);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, sources);
         sRootfsSource.setAdapter(adapter);
 
         // Set current value
