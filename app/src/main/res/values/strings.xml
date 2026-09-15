@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Winlator</string>
+    <string name="app_name">Linux X</string>
     <string name="run">Run</string>
     <string name="edit">Edit</string>
     <string name="remove">Remove</string>
@@ -289,8 +289,8 @@
     <string name="internal_storage">Internal Storage</string>
     <string name="windows_version">Windows Version</string>
     <string name="install_component">Install Component</string>
-    <string name="open_android_browser_from_wine">Open Android Browser from Wine</string>
-    <string name="use_android_clipboard_on_Wine">Use Android Clipboard on Wine</string>
+    <string name="open_android_browser_from_linux">Open Android Browser from Wine</string>
+    <string name="use_android_clipboard_on_linux">Use Android Clipboard on Wine</string>
     <string name="enable_background_protection">Enable Background Protection</string>
     <string name="enable_background_protection_tooltip">Keep container alive in background or when device locked, but processes\'re paused.</string>
     <string name="enable_background_wakelock">Enable wakelock when the device is locked</string>
@@ -351,10 +351,49 @@
     <string name="ddraw_wrapper" translatable="false">DDraw Wrapper</string>
     <string name="renderer">Renderer</string>
     <string name="default_no_override">Default (No override)</string>
-    <string name="fgs_notification_channel_desc">Keeps Winlator running in the background so a wine session is not interrupted by Android\'s background process management.</string>
+    <string name="fgs_notification_channel_desc">Keeps Linux X running in the background so a wine session is not interrupted by Android\'s background process management.</string>
     <string name="fgs_notification_content_container_background">A container session is running in the background</string>
     <string name="fgs_notification_content_container_foreground">There is a container session running</string>
-    <string name="fgs_notification_content_else">Winlator is running in the background</string>
+    <string name="fgs_notification_content_else">Linux X is running in the background</string>
     <string name="save_mem_on_run_from_steam">Save memory on run from Steam</string>
     <string name="present_mode">Present Mode</string>
+    <!-- Linux X Strings -->
+    <string name="linux_preset">Linux Preset</string>
+    <string name="rootfs">Root Filesystem</string>
+    <string name="rootfs_path">Rootfs Path</string>
+    <string name="rootfs_type">Rootfs Type</string>
+    <string name="desktop_environment">Desktop Environment</string>
+    <string name="launch_command">Launch Command</string>
+    <string name="cpu_governor">CPU Governor</string>
+    <string name="install_rootfs">Install Rootfs</string>
+    <string name="download_rootfs">Download Rootfs</string>
+    <string name="import_rootfs">Import Rootfs</string>
+    <string name="rootfs_installed">Rootfs installed successfully</string>
+    <string name="no_rootfs_found">No rootfs found</string>
+    <string name="no_desktop_environment">No Desktop Environment</string>
+    <string name="no_de_detected">No desktop environment detected.\n\nInstall LXQt + Terminal?</string>
+    <string name="install_lxqt">Install LXQt</string>
+    <string name="terminal_only">Terminal Only</string>
+    <string name="installing_desktop_environment">Installing Desktop Environment...</string>
+    <string name="installing_terminal">Installing Terminal...</string>
+    <string name="debian">Debian</string>
+    <string name="ubuntu">Ubuntu</string>
+    <string name="arch_linux">Arch Linux</string>
+    <string name="alpine_linux">Alpine Linux</string>
+    <string name="fedora">Fedora</string>
+    <string name="custom_rootfs">Custom Rootfs</string>
+    <string name="xfce_desktop">XFCE</string>
+    <string name="lxqt_desktop">LXQt</string>
+    <string name="kde_plasma">KDE Plasma</string>
+    <string name="gnome_desktop">GNOME</string>
+    <string name="mate_desktop">MATE</string>
+    <string name="terminal_desktop">Terminal Only</string>
+    <string name="auto_detect">Auto Detect</string>
+    <string name="select_rootfs_source">Select Rootfs Source</string>
+    <string name="download_from_repo">Download from Linux X Repo</string>
+    <string name="import_from_file">Import from File</string>
+    <string name="use_existing_path">Use Existing Path</string>
+    <string name="linux_configuration">Linux Configuration</string>
+    <string name="start_script">Start Script</string>
+    <string name="advanced_linux_settings">Advanced Linux Settings</string>
 </resources>

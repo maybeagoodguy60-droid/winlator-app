@@ -12,12 +12,10 @@ import java.util.Locale;
 
 public class RootFS {
     public static final String USER = "xuser";
-    public static final String HOME_PATH = "/home/"+USER;
-    public static final String USER_CACHE_PATH = "/home/"+USER+"/.cache";
-    public static final String USER_CONFIG_PATH = "/home/"+USER+"/.config";
-    public static final String WINEPREFIX = "/home/"+USER+"/.wine";
+    public static final String HOME_PATH = "/home/" + USER;
+    public static final String USER_CACHE_PATH = "/home/" + USER + "/.cache";
+    public static final String USER_CONFIG_PATH = "/home/" + USER + "/.config";
     private final File rootDir;
-    private String winePath = "/opt/wine";
 
     private RootFS(File rootDir) {
         this.rootDir = rootDir;
@@ -44,7 +42,7 @@ public class RootFS {
     }
 
     public String getFormattedVersion() {
-        return String.format(Locale.ENGLISH, "%.1f", (float)getVersion());
+        return String.format(Locale.ENGLISH, "%.1f", (float) getVersion());
     }
 
     public void createRFSVersionFile(int version) {
@@ -53,30 +51,9 @@ public class RootFS {
         try {
             file.createNewFile();
             FileUtils.writeString(file, String.valueOf(version));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public String getWinePath() {
-        return winePath;
-    }
-
-    public void setWinePath(String winePath) {
-        this.winePath = FileUtils.toRelativePath(rootDir.getPath(), winePath);
-    }
-
-    private File getImageInfoDir() {
-        return new File(rootDir, ".winlator");
-    }
-
-    public File getRFSVersionFile() {
-        return new File(getImageInfoDir(), ".rfs_version");
-    }
-
-    public File getInstalledWineDir() {
-        return new File(rootDir, "/opt/installed-wine");
     }
 
     public File getTmpDir() {
@@ -87,17 +64,29 @@ public class RootFS {
         return new File(rootDir, "/usr/lib");
     }
 
+    public File getBinDir() {
+        return new File(rootDir, "/usr/bin");
+    }
+
+    public File getEtcDir() {
+        return new File(rootDir, "/etc");
+    }
+
+    public File getLinuxHomeDir() {
+        return new File(rootDir, HOME_PATH);
+    }
+
     @NonNull
     @Override
     public String toString() {
         return rootDir.getPath();
     }
 
-    public static String getDosUserCachePath() {
-        return "Z:"+USER_CACHE_PATH.replace("/", "\\");
+    private File getImageInfoDir() {
+        return new File(rootDir, ".linuxx");
     }
 
-    public static String getDosUserConfigPath() {
-        return "Z:"+USER_CONFIG_PATH.replace("/", "\\");
+    public File getRFSVersionFile() {
+        return new File(getImageInfoDir(), ".rfs_version");
     }
 }
