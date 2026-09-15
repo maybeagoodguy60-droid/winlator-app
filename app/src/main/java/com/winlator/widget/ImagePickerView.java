@@ -23,7 +23,6 @@ import com.winlator.core.AppUtils;
 import com.winlator.core.FileUtils;
 import com.winlator.core.ImageUtils;
 import com.winlator.core.UnitUtils;
-import com.winlator.core.WineThemeManager;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -33,7 +32,7 @@ import java.util.List;
 public class ImagePickerView extends View implements View.OnClickListener {
     private final Bitmap icon;
     private final List<String> defaultSources = Arrays.asList("wallpaper-1", "wallpaper-2", "wallpaper-3");
-    private String selectedSource = WineThemeManager.DEFAULT_WALLPAPER_ID;
+    private String selectedSource = "default";
 
     public ImagePickerView(Context context) {
         this(context, null);
@@ -83,7 +82,7 @@ public class ImagePickerView extends View implements View.OnClickListener {
     @Override
     public void onClick(View anchor) {
         final Context context = getContext();
-        final File userWallpaperFile = WineThemeManager.getUserWallpaperFile(context);
+        final File userWallpaperFile = new File(context.getFilesDir(), "wallpaper");
 
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.image_picker_view, null);
@@ -106,7 +105,7 @@ public class ImagePickerView extends View implements View.OnClickListener {
                 removeButton.setVisibility(View.VISIBLE);
                 removeButton.setOnClickListener((v) -> {
                     FileUtils.delete(userWallpaperFile);
-                    selectedSource = WineThemeManager.DEFAULT_WALLPAPER_ID;
+                    selectedSource = "default";
                     popupWindow[0].dismiss();
                 });
             }

@@ -90,7 +90,7 @@ public abstract class GeneralComponents {
                 case DXVK:
                 case VKD3D:
                 case WINED3D:
-                    return new File(rootDir, RootFS.WINEPREFIX+"/drive_c/windows");
+                    return new File(rootDir, "/usr/lib");
                 case SOUNDFONT:
                     File destination = new File(context.getCacheDir(), "soundfont");
                     if (!destination.isDirectory()) destination.mkdirs();
@@ -232,7 +232,7 @@ public abstract class GeneralComponents {
         final Activity activity = (Activity)spinner.getContext();
         File destination = new File(getComponentDir(type, activity), filename);
         if (destination.isFile()) destination.delete();
-        HttpUtils.download(activity, String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/"+filename), destination, (success) -> {
+        downloadFile(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/"+filename), destination); boolean success = destination.exists(); {
             if (success) {
                 loadSpinner(type, spinner, parseDisplayText(type, filename), defaultItem);
             }
@@ -331,7 +331,7 @@ public abstract class GeneralComponents {
         final Activity activity = (Activity)spinner.getContext();
         final PreloaderDialog preloaderDialog = new PreloaderDialog(activity);
         preloaderDialog.show(R.string.loading);
-        HttpUtils.download(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/index.txt"), (content) -> activity.runOnUiThread(() -> {
+        String content = downloadString(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/index.txt")); activity.runOnUiThread(() -> {
             preloaderDialog.close();
             if (content != null) {
                 if (content.isEmpty()) {
@@ -414,6 +414,43 @@ public abstract class GeneralComponents {
 
         if (selectedItem == null || selectedItem.isEmpty() || !AppUtils.setSpinnerSelectionFromValue(spinner, selectedItem)) {
             AppUtils.setSpinnerSelectionFromValue(spinner, defaultItem);
+        }
+    }
+
+    private static void downloadFile(String urlStr, File dest) {
+        try {
+            java.net.URL url = new java.net.URL(urlStr);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(60000);
+            java.io.InputStream is = conn.getInputStream();
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(dest);
+            byte[] buf = new byte[8192];
+            int len;
+            while ((len = is.read(buf)) > 0) fos.write(buf, 0, len);
+            fos.close();
+            is.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String downloadString(String urlStr) {
+        try {
+            java.net.URL url = new java.net.URL(urlStr);
+            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(15000);
+            java.io.InputStream is = conn.getInputStream();
+            byte[] data = new byte[conn.getContentLength() > 0 ? conn.getContentLength() : 4096];
+            StringBuilder sb = new StringBuilder();
+            int read;
+            while ((read = is.read(data)) != -1) sb.append(new String(data, 0, read));
+            is.close();
+            return sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
         }
     }
 }

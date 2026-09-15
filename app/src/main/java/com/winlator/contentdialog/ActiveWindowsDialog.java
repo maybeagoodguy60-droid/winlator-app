@@ -35,7 +35,7 @@ public class ActiveWindowsDialog extends ContentDialog {
         showDesktopButton.setVisibility(View.VISIBLE);
         showDesktopButton.setText(R.string.show_desktop);
         showDesktopButton.setOnClickListener((v) -> {
-            activity.getWinHandler().showDesktop();
+            // showDesktop removed for Linux X
             dismiss();
         });
 
@@ -92,7 +92,7 @@ public class ActiveWindowsDialog extends ContentDialog {
             }
 
             ivWindow.setOnClickListener((v) -> {
-                activity.getWinHandler().bringToFront(window.getClassName(), window.getHandle());
+                // bringToFront removed for Linux X
                 dismiss();
             });
 

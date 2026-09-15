@@ -140,7 +140,7 @@ public class ContainerDetailFragment extends Fragment {
         setupTabs(view);
 
         view.findViewById(R.id.BTAudioDriverConfig).setOnClickListener((v) -> {
-            new AudioDriverConfigDialog(context, sAudioDriver).show();
+            new AudioDriverConfigDialog(view.findViewById(R.id.SAudioDriver)).show();
         });
 
         view.findViewById(R.id.BTConfirm).setOnClickListener((v) -> {

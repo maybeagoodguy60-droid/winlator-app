@@ -95,7 +95,7 @@ public class TaskManagerDialog extends ContentDialog implements OnGetProcessInfo
         cancelButton.setText(R.string.new_task);
         cancelButton.setOnClickListener((v) -> {
             dismiss();
-            ContentDialog.prompt(activity, R.string.new_task, "taskmgr.exe", (command) -> activity.getWinHandler().exec(command));
+            ContentDialog.prompt(activity, R.string.new_task, "taskmgr.exe", (command) -> // exec removed for Linux X);
         });
 
         setOnDismissListener((dialog) -> {
@@ -106,7 +106,7 @@ public class TaskManagerDialog extends ContentDialog implements OnGetProcessInfo
                 timer = null;
             }
 
-            activity.getWinHandler().setOnGetProcessInfoListener(null);
+            // setOnGetProcessInfoListener removed for Linux X
         });
 
         inflater = LayoutInflater.from(activity);
@@ -171,7 +171,7 @@ public class TaskManagerDialog extends ContentDialog implements OnGetProcessInfo
 
     private void update() {
         synchronized (lock) {
-            activity.getWinHandler().listProcesses();
+            // listProcesses removed for Linux X
 
             final LinearLayout container = findViewById(R.id.LLProcessList);
             if (container.getChildCount() == 0) findViewById(R.id.TVEmptyText).setVisibility(View.VISIBLE);
@@ -189,18 +189,18 @@ public class TaskManagerDialog extends ContentDialog implements OnGetProcessInfo
         listItemMenu.inflate(R.menu.process_popup_menu);
         listItemMenu.setOnMenuItemClickListener((menuItem) -> {
             int itemId = menuItem.getItemId();
-            final WinHandler winHandler = activity.getWinHandler();
+            // WinHandler removed for Linux X
             switch (itemId) {
                 case R.id.menu_item_process_affinity:
                     showProcessorAffinityDialog(processInfo);
                     break;
                 case R.id.menu_item_bring_to_front:
-                    winHandler.bringToFront(processInfo.name);
+                    // removed for Linux X
                     dismiss();
                     break;
                 case R.id.menu_item_end_process:
                     ContentDialog.confirm(activity, R.string.do_you_want_to_end_this_process, () -> {
-                        winHandler.killProcess(null, processInfo.pid);
+                        // removed for Linux X
                     });
                     break;
             }
@@ -216,8 +216,8 @@ public class TaskManagerDialog extends ContentDialog implements OnGetProcessInfo
         final CPUListView cpuListView = dialog.findViewById(R.id.CPUListView);
         cpuListView.setCheckedCPUList(processInfo.getCPUList());
         dialog.setOnConfirmCallback(() -> {
-            WinHandler winHandler = activity.getWinHandler();
-            winHandler.setProcessAffinity(processInfo.pid, ProcessHelper.getAffinityMask(cpuListView.getCheckedCPUList()));
+            // WinHandler removed for Linux X
+            // setProcessAffinity removed for Linux X
             update();
         });
         dialog.show();
@@ -226,7 +226,7 @@ public class TaskManagerDialog extends ContentDialog implements OnGetProcessInfo
     @Override
     public void show() {
         update();
-        activity.getWinHandler().setOnGetProcessInfoListener(this);
+        // setOnGetProcessInfoListener removed for Linux X
 
         timer = new Timer();
         timer.schedule(new TimerTask() {
