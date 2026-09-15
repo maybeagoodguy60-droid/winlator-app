@@ -233,13 +233,13 @@ public abstract class GeneralComponents {
         File destination = new File(getComponentDir(type, activity), filename);
         if (destination.isFile()) destination.delete();
         downloadFile(String.format(INSTALLABLE_COMPONENTS_URL, type.lowerName()+"/"+filename), destination);
-                boolean success = destination.exists();
-                if (success) {
-            if (success) {
-                loadSpinner(type, spinner, parseDisplayText(type, filename), defaultItem);
-            }
-            else AppUtils.showToast(activity, R.string.a_network_error_occurred);
-        });
+        boolean success = destination.exists();
+        if (success) {
+            loadSpinner(type, spinner, parseDisplayText(type, filename), defaultItem);
+        }
+        else {
+            AppUtils.showToast(activity, R.string.a_network_error_occurred);
+        }
     }
 
     private static void installFromPackagedFile(Context context, TarCompressorUtils.Type compressedType, final Type type, File originFile, String identifier, JSONArray filesJSONArray) throws JSONException {
@@ -352,7 +352,7 @@ public abstract class GeneralComponents {
                 });
             }
             else AppUtils.showToast(activity, R.string.a_network_error_occurred);
-        }));
+        });
     }
 
     public static void initViews(final Type type, View toolbox, final Spinner spinner, final String selectedItem, final String defaultItem) {
