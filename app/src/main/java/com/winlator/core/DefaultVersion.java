@@ -14,7 +14,7 @@ public abstract class DefaultVersion {
     public static final String D7VK = "1.11";
     public static final String D8VK = "1.0";
     public static final String VKD3D = "2.14.1";
-    public static final String WINED3D = WineInfo.MAIN_WINE_VERSION;
+    public static final String WINED3D = "9.0";
     public static final String CNC_DDRAW = "6.6";
     public static final String SOUNDFONT = "SONiVOX-EAS-GM-Wavetable";
     public static final String MINOR_DXVK = "1.10.3";
