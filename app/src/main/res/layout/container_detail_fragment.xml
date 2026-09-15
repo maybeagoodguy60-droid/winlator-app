@@ -101,24 +101,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/LLWineVersion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/wine_version" />
-
-                <Spinner
-                    style="@style/ComboBox"
-                    android:layout_width="match_parent"
-                    android:id="@+id/SWineVersion" />
-            </LinearLayout>
-
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -126,28 +108,6 @@
 
             <LinearLayout
                 android:id="@+id/LLGraphicsDriver"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical" />
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/dxwrapper" />
-
-                <ImageView
-                    android:id="@+id/BTHelpDXWrapper"
-                    style="@style/HelpButton" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/LLDXWrapper"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
@@ -202,186 +162,13 @@
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/wine_configuration" />
-
-                <com.google.android.material.tabs.TabItem
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/win_components" />
-
-                <com.google.android.material.tabs.TabItem
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
                     android:text="@string/environment_variables" />
-
-                <com.google.android.material.tabs.TabItem
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/drives" />
 
                 <com.google.android.material.tabs.TabItem
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/advanced" />
             </com.google.android.material.tabs.TabLayout>
-
-            <LinearLayout
-                android:id="@+id/LLTabWineConfiguration"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <LinearLayout style="@style/FieldSet">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/theme" />
-
-                        <RadioGroup
-                            android:id="@+id/RGDesktopTheme"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:gravity="center_vertical">
-
-                            <RadioButton
-                                android:id="@+id/RBLight"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/light" />
-
-                            <RadioButton
-                                android:id="@+id/RBDark"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/dark" />
-                        </RadioGroup>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/background" />
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal">
-
-                            <Spinner
-                                android:id="@+id/SDesktopBackgroundType"
-                                style="@style/ComboBox"
-                                android:layout_width="0dp"
-                                android:layout_weight="1"
-                                android:entries="@array/desktop_background_type_entries" />
-
-                            <com.winlator.widget.ColorPickerView
-                                android:id="@+id/CPVDesktopBackgroundColor"
-                                android:layout_width="84dp"
-                                android:layout_height="wrap_content"
-                                android:visibility="gone" />
-
-                            <com.winlator.widget.ImagePickerView
-                                android:id="@+id/IPVDesktopBackgroundImage"
-                                android:layout_width="84dp"
-                                android:layout_height="wrap_content"
-                                android:visibility="gone" />
-                        </LinearLayout>
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/system_font" />
-
-                        <Spinner
-                            style="@style/ComboBox"
-                            android:id="@+id/SSystemFont"
-                            android:layout_width="match_parent"
-                            android:entries="@array/system_font_entries" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/dpi_font_size" />
-
-                        <com.winlator.widget.SeekBar
-                            android:id="@+id/SBLogPixels"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:suffix=" dpi"
-                            app:step="24"
-                            app:minValue="96"
-                            app:maxValue="240" />
-                    </LinearLayout>
-
-                    <TextView
-                        style="@style/FieldSetLabel"
-                        android:text="@string/desktop" />
-                </FrameLayout>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <LinearLayout style="@style/FieldSet">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/mouse_warp_override" />
-
-                        <Spinner
-                            style="@style/ComboBox"
-                            android:id="@+id/SMouseWarpOverride"
-                            android:layout_width="match_parent" />
-                    </LinearLayout>
-
-                    <TextView
-                        style="@style/FieldSetLabel"
-                        android:text="@string/directinput" />
-                </FrameLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/LLTabWinComponents"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <LinearLayout
-                        style="@style/FieldSet"
-                        android:id="@+id/LLWinComponentsDirectX" />
-
-                    <TextView
-                        style="@style/FieldSetLabel"
-                        android:text="@string/directx" />
-                </FrameLayout>
-
-                <FrameLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp">
-
-                    <LinearLayout
-                        style="@style/FieldSet"
-                        android:id="@+id/LLWinComponentsGeneral" />
-
-                    <TextView
-                        style="@style/FieldSetLabel"
-                        android:text="@string/general" />
-                </FrameLayout>
-            </LinearLayout>
 
             <LinearLayout
                 android:id="@+id/LLTabEnvVars"
@@ -409,60 +196,6 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/LLTabDrives"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingLeft="20dp"
-                    android:paddingRight="20dp"
-                    android:layout_marginBottom="4dp">
-
-                    <TextView
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/letter" />
-
-                    <TextView
-                        android:layout_width="100dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/target_path" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/LLDrives"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingLeft="16dp"
-                    android:paddingRight="16dp"/>
-
-                <TextView
-                    android:id="@+id/TVDrivesEmptyText"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:text="@string/no_items_to_display"
-                    android:padding="16dp"
-                    android:visibility="gone" />
-
-                <View style="@style/HorizontalLine" />
-
-                <Button
-                    style="@style/ButtonNeutral"
-                    android:id="@+id/BTAddDrive"
-                    android:layout_width="160dp"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:text="@string/add" />
-            </LinearLayout>
-
-            <LinearLayout
                 android:id="@+id/LLTabAdvanced"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -478,17 +211,65 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/box64_preset" />
+                            android:text="@string/desktop_environment" />
 
                         <Spinner
                             style="@style/ComboBox"
-                            android:id="@+id/SBox64Preset"
-                            android:layout_width="match_parent" />
+                            android:id="@+id/SDesktopEnv"
+                            android:layout_width="match_parent"
+                            android:entries="@array/desktop_env_entries" />
                     </LinearLayout>
 
                     <TextView
                         style="@style/FieldSetLabel"
-                        android:text="@string/box64" />
+                        android:text="@string/desktop" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp">
+
+                    <LinearLayout style="@style/FieldSet">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/launch_command" />
+
+                        <EditText
+                            style="@style/EditText"
+                            android:id="@+id/ETLaunchCommand"
+                            android:layout_width="match_parent"
+                            android:inputType="text"
+                            android:hint="e.g. startxfce4" />
+                    </LinearLayout>
+
+                    <TextView
+                        style="@style/FieldSetLabel"
+                        android:text="@string/system" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp">
+
+                    <LinearLayout style="@style/FieldSet">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/cpu_governor" />
+
+                        <Spinner
+                            style="@style/ComboBox"
+                            android:id="@+id/SCPUGovernor"
+                            android:layout_width="match_parent"
+                            android:entries="@array/cpu_governor_entries" />
+                    </LinearLayout>
+
+                    <TextView
+                        style="@style/FieldSetLabel"
+                        android:text="@string/processor" />
                 </FrameLayout>
 
                 <FrameLayout
@@ -507,16 +288,6 @@
                             android:layout_width="match_parent"
                             android:id="@+id/SStartupSelection"
                             android:entries="@array/startup_selection_entries" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/windows_version" />
-
-                        <Spinner
-                            style="@style/ComboBox"
-                            android:layout_width="match_parent"
-                            android:id="@+id/SWinVersion" />
                     </LinearLayout>
 
                     <TextView
@@ -536,20 +307,18 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:layout_marginTop="4dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/processor_affinity_32_bit_apps"
-                    android:layout_marginTop="8dp" />
-
-                <com.winlator.widget.CPUListView
-                    android:id="@+id/CPUListViewWoW64"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_horizontal"
-                    android:layout_marginTop="4dp" />
             </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/controls_profile"
+                android:layout_marginTop="8dp" />
+
+            <Spinner
+                style="@style/ComboBox"
+                android:id="@+id/SControlsProfile"
+                android:layout_width="match_parent" />
         </LinearLayout>
     </ScrollView>
 
