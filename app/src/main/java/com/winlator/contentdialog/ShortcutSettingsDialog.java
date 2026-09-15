@@ -12,7 +12,6 @@ import android.widget.Spinner;
 import com.winlator.ContainerDetailFragment;
 import com.winlator.R;
 import com.winlator.ShortcutsFragment;
-import com.winlator.box64.Box64PresetManager;
 import com.winlator.container.GraphicsDrivers;
 import com.winlator.container.Shortcut;
 import com.winlator.core.AppUtils;
@@ -71,7 +70,15 @@ public class ShortcutSettingsDialog extends ContentDialog {
         cbForceFullscreen.setChecked(shortcut.getExtra("forceFullscreen", "0").equals("1"));
 
         final Spinner sBox64Preset = findViewById(R.id.SBox64Preset);
-        Box64PresetManager.loadSpinner(sBox64Preset, shortcut.getExtra("box64Preset", shortcut.container.getBox64Preset()));
+        String[] box64Presets = {"default"};
+        sBox64Preset.setAdapter(new ArrayAdapter<>(context, android.R.layout.simple_spinner_dropdown_item, box64Presets));
+        String currentBox64Preset = shortcut.getExtra("box64Preset", shortcut.container.getBox64Preset());
+        for (int i = 0; i < box64Presets.length; i++) {
+            if (box64Presets[i].equals(currentBox64Preset)) {
+                sBox64Preset.setSelection(i, false);
+                break;
+            }
+        }
 
         final Spinner sControlsProfile = findViewById(R.id.SControlsProfile);
         loadControlsProfileSpinner(sControlsProfile, shortcut.getExtra("controlsProfile", "0"));
@@ -115,7 +122,7 @@ public class ShortcutSettingsDialog extends ContentDialog {
             String envVars = envVarsView.getEnvVars();
             shortcut.putExtra("envVars", !envVars.isEmpty() ? envVars : null);
 
-            String box64Preset = Box64PresetManager.getSpinnerSelectedId(sBox64Preset);
+            String box64Preset = String.valueOf(sBox64Preset.getSelectedItem());
             shortcut.putExtra("box64Preset", !box64Preset.equals(shortcut.container.getBox64Preset()) ? box64Preset : null);
 
             ArrayList<ControlsProfile> profiles = inputControlsManager.getProfiles(true);
