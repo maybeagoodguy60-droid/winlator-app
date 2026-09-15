@@ -19,15 +19,20 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run transformation script
+      - name: Run Phase 1 - Core Transformation
         run: |
           chmod +x scripts/linux-x-transform.sh
           bash scripts/linux-x-transform.sh
+
+      - name: Run Phase 2 - XML Layout Updates
+        run: |
+          chmod +x scripts/linux-x-phase2.sh
+          bash scripts/linux-x-phase2.sh
 
       - name: Commit changes
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "Apply Linux X transformation"
+          git diff --cached --quiet || git commit -m "Apply Linux X transformation - Phase 1 & 2"
           git push
