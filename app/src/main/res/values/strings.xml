@@ -25,13 +25,9 @@
     <string name="binding_up">Binding Up</string>
     <string name="bindings">Bindings</string>
     <string name="both">Both</string>
-    <string name="box64_logs">Box64 Logs</string>
-    <string name="box64_preset">Box64 Preset</string>
-    <string name="box64_version">Box64 Version</string>
     <string name="brightness">Brightness</string>
     <string name="bring_to_front">Bring to Front</string>
     <string name="browse">Browse</string>
-    <string name="builtin_wine">Builtin (Wine)</string>
     <string name="cancel">Cancel</string>
     <string name="capacity">Capacity</string>
     <string name="capture_pointer_on_external_mouse">Capture pointer on external mouse</string>
@@ -84,7 +80,6 @@
     <string name="do_you_want_to_remove_this_file">Do you want to remove this file?</string>
     <string name="do_you_want_to_remove_this_preset">Do you want to remove this preset?</string>
     <string name="do_you_want_to_remove_this_profile">Do you want to remove this profile?</string>
-    <string name="do_you_want_to_remove_this_wine_version">Do you want to remove this Wine version?</string>
     <string name="do_you_want_to_reset_configurations">Do you want to reset the configurations?</string>
     <string name="documents">Documents</string>
     <string name="download_file">Download File</string>
@@ -111,7 +106,6 @@
     <string name="enable_fxaa">Enable FXAA</string>
     <string name="enable_strict_shader_math">Enable Strict Shader Math</string>
     <string name="enable_vibration">Enable Vibration</string>
-    <string name="enable_wine_debug">Enable Wine debug</string>
     <string name="enabled">Enabled</string>
     <string name="end_process">End Process</string>
     <string name="environment_variables">Environment Variables</string>
@@ -124,7 +118,6 @@
     <string name="external_controllers">External Controllers</string>
     <string name="favorites">Favorites</string>
     <string name="fedora">Fedora</string>
-    <string name="fgs_notification_channel_desc">Keeps Winlator running in the background so a wine session is not interrupted by Android\'s background process management.</string>
     <string name="fgs_notification_content_container_background">A container session is running in the background</string>
     <string name="fgs_notification_content_container_foreground">There is a container session running</string>
     <string name="fgs_notification_content_else">Winlator is running in the background</string>
@@ -160,7 +153,6 @@
     <string name="install_component">Install Component</string>
     <string name="install_lxqt">Install LXQt</string>
     <string name="install_rootfs">Install Rootfs</string>
-    <string name="install_wine">Install Wine</string>
     <string name="installed_version">Installed Version</string>
     <string name="installing_desktop_environment">Installing Desktop Environment...</string>
     <string name="installing_system_files">Installing System Files...</string>
@@ -217,7 +209,6 @@
     <string name="old">old</string>
     <string name="opacity">Opacity</string>
     <string name="open_android_browser_from_linux">Open Android Browser from Wine</string>
-    <string name="open_android_browser_from_wine">Open Android Browser from Wine</string>
     <string name="open_directory">Open Directory</string>
     <string name="open_file">Open File</string>
     <string name="open_file_manager_on_launch">Open File Manager on Launch</string>
@@ -249,7 +240,6 @@
     <string name="remove">Remove</string>
     <string name="removing_container">Removing Container...</string>
     <string name="removing_files">Removing Files...</string>
-    <string name="removing_wine">Removing Wine...</string>
     <string name="rename">Rename</string>
     <string name="renderer">Renderer</string>
     <string name="reset">Reset</string>
@@ -311,8 +301,6 @@
     <string name="unable_to_download_file">Unable to download file</string>
     <string name="unable_to_import_profile">Unable to import profile</string>
     <string name="unable_to_install_system_files">Unable to install system files</string>
-    <string name="unable_to_install_wine">Unable to install Wine</string>
-    <string name="unable_to_remove_this_wine_version">Unable to remove this Wine version</string>
     <string name="untitled">Untitled</string>
     <string name="updating_system_files">Updating System Files...</string>
     <string name="use_android_clipboard_on_Wine">Use Android Clipboard on Wine</string>
@@ -328,9 +316,6 @@
     <string name="vulkan_version">Vulkan Version</string>
     <string name="width">Width</string>
     <string name="windows_version">Windows Version</string>
-    <string name="wine_configuration">Wine Configuration</string>
-    <string name="wine_debug_channel">Wine Debug Channel</string>
-    <string name="wine_version">Wine Version</string>
     <string name="xfce_desktop">XFCE</string>
     <string name="you_cannot_paste_files_here">You cannot paste files here</string>
     <string name="you_cannot_remove_this_component_version">You cannot remove this component version</string>
