@@ -7,7 +7,6 @@ import com.winlator.R;
 import com.winlator.core.Callback;
 import com.winlator.core.FileUtils;
 import com.winlator.core.TarCompressorUtils;
-import com.winlator.core.WineInfo;
 import com.winlator.xenvironment.RootFS;
 
 import org.json.JSONArray;
@@ -107,8 +106,7 @@ public class ContainerManager {
             container.setRootDir(containerDir);
             container.loadData(data);
 
-            boolean isMainWineVersion = !data.has("wineVersion") || WineInfo.isMainWineVersion(data.getString("wineVersion"));
-            if (!isMainWineVersion) container.setWineVersion(data.getString("wineVersion"));
+            if (data.has("wineVersion")) container.setWineVersion(data.getString("wineVersion"));
 
             if (!extractContainerPatternFile(container.getWineVersion(), containerDir)) {
                 FileUtils.delete(containerDir);
@@ -245,27 +243,19 @@ public class ContainerManager {
     }
 
     private boolean extractContainerPatternFile(String wineVersion, File containerDir) {
-        if (WineInfo.isMainWineVersion(wineVersion)) {
-            boolean result = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "container_pattern.tzst", containerDir);
+        boolean result = TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, context, "container_pattern.tzst", containerDir);
 
-            if (result) {
-                try {
-                    JSONObject commonDlls = new JSONObject(FileUtils.readString(context, "common_dlls.json"));
-                    copyCommonDlls("x86_64-windows", "system32", commonDlls, containerDir);
-                    copyCommonDlls("i386-windows", "syswow64", commonDlls, containerDir);
-                }
-                catch (JSONException e) {
-                    return false;
-                }
+        if (result) {
+            try {
+                JSONObject commonDlls = new JSONObject(FileUtils.readString(context, "common_dlls.json"));
+                copyCommonDlls("x86_64-windows", "system32", commonDlls, containerDir);
+                copyCommonDlls("i386-windows", "syswow64", commonDlls, containerDir);
             }
+            catch (JSONException e) {
+                return false;
+            }
+        }
 
-            return result;
-        }
-        else {
-            File installedWineDir = RootFS.find(context).getInstalledWineDir();
-            WineInfo wineInfo = WineInfo.fromIdentifier(context, wineVersion);
-            File file = new File(installedWineDir, "container-pattern-"+wineInfo.fullVersion()+".tzst");
-            return TarCompressorUtils.extract(TarCompressorUtils.Type.ZSTD, file, containerDir);
-        }
+        return result;
     }
 }
