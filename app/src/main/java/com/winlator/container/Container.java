@@ -1,6 +1,5 @@
 package com.winlator.container;
 
-import com.winlator.box64.Box64Preset;
 import com.winlator.core.AppUtils;
 import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
@@ -44,7 +43,7 @@ public class Container {
     private String cpuList;
     private String cpuListWoW64;
     private String desktopTheme = "";
-    private String box64Preset = Box64Preset.DEFAULT;
+    private String box64Preset = "default";
     private File rootDir;
     private JSONObject extraData;
 
