@@ -45,6 +45,7 @@ import com.winlator.linux.LinuxPresetManager;
 import com.winlator.linux.LinuxSessionLauncher;
 import com.winlator.widget.CPUListView;
 import com.winlator.widget.EnvVarsView;
+import com.winlator.xenvironment.RootFSInstaller;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -121,7 +122,7 @@ public class ContainerDetailFragment extends Fragment {
         LinearLayout llGraphicsDriver = view.findViewById(R.id.LLGraphicsDriver);
         graphicsDriverPicker = new GraphicsDriverPicker(
             llGraphicsDriver,
-            isEditMode() ? container.getGraphicsDriver() : Container.DEFAULT_AUDIO_DRIVER,
+            isEditMode() ? container.getGraphicsDriver() : LinuxContainer.DEFAULT_GRAPHICS_DRIVER,
             isEditMode() ? container.getGraphicsDriverConfig() : ""
         );
 
@@ -185,7 +186,7 @@ public class ContainerDetailFragment extends Fragment {
                     container.setDesktopEnv(desktopEnv);
                     container.setLaunchCommand(launchCommand);
                     container.setCpuGovernor(cpuGovernor);
-                    container.setRootfsPath(etRootfsPath.getText().toString().trim());
+                    container.setRootfsPath(getRootfsPathFromUI());
                     container.saveData();
                 }
                 else {
@@ -204,7 +205,7 @@ public class ContainerDetailFragment extends Fragment {
                     container.setLaunchCommand(launchCommand);
                     container.setCpuGovernor(cpuGovernor);
                     container.setRootfsType(LinuxContainer.DEFAULT_ROOTFS_TYPE);
-                    String rootfsPath = etRootfsPath.getText().toString().trim();
+                    String rootfsPath = getRootfsPathFromUI();
                     container.setRootfsPath(rootfsPath);
 
                     JSONObject data = new JSONObject();
@@ -398,8 +399,51 @@ public class ContainerDetailFragment extends Fragment {
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.setType("*/*");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            startActivityForResult(Intent.createChooser(intent, "Select Rootfs"), 1001);
+            startActivityForResult(Intent.createChooser(intent, "Select Rootfs"), REQUEST_PICK_ROOTFS);
         });
+    }
+
+    private static final int REQUEST_PICK_ROOTFS = 1001;
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_PICK_ROOTFS && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+            importRootfs(data.getData());
+        }
+    }
+
+    private void importRootfs(final android.net.Uri uri) {
+        tvRootfsStatus.setText(getString(R.string.rootfs_importing));
+        tvRootfsStatus.setTextColor(0xFFFFC107);
+
+        new Thread(() -> {
+            File importDir;
+            String rootfsPath = etRootfsPath.getText().toString().trim();
+            if (!rootfsPath.isEmpty() && !rootfsPath.equals("Tap Browse to select")
+                    && !rootfsPath.equals("/data/data/com.winlator/files/rootfs")) {
+                importDir = new File(rootfsPath);
+            } else {
+                importDir = new File(getContext().getFilesDir(), "rootfs");
+            }
+
+            boolean success = RootFSInstaller.importFromUri(getContext(), uri, importDir);
+            requireActivity().runOnUiThread(() -> {
+                if (success) {
+                    etRootfsPath.setText(importDir.getPath());
+                    validateRootfsPath(importDir.getPath());
+                } else {
+                    tvRootfsStatus.setText(getString(R.string.rootfs_validate_fail));
+                    tvRootfsStatus.setTextColor(0xFFFF5252);
+                }
+            });
+        }).start();
+    }
+
+    private String getRootfsPathFromUI() {
+        String rootfsPath = etRootfsPath.getText().toString().trim();
+        if (rootfsPath.isEmpty() || rootfsPath.equals("Tap Browse to select")) return "";
+        return rootfsPath;
     }
 
     private void validateRootfsPath(String path) {
@@ -407,12 +451,28 @@ public class ContainerDetailFragment extends Fragment {
         if (rootDir.isDirectory() && new File(rootDir, "/bin/bash").exists()) {
             tvRootfsStatus.setText(getString(R.string.rootfs_validate_ok));
             tvRootfsStatus.setTextColor(0xFF4CAF50);
+            validateGLLibs(rootDir);
         } else if (rootDir.isDirectory() && new File(rootDir, "/etc/os-release").exists()) {
             tvRootfsStatus.setText(getString(R.string.rootfs_validate_ok));
             tvRootfsStatus.setTextColor(0xFF4CAF50);
+            validateGLLibs(rootDir);
         } else {
             tvRootfsStatus.setText(getString(R.string.rootfs_validate_fail));
             tvRootfsStatus.setTextColor(0xFFFF5252);
+        }
+    }
+
+    private void validateGLLibs(File rootDir) {
+        StringBuilder missing = new StringBuilder();
+        for (String lib : new String[]{"usr/lib/libX11.so.6", "usr/lib/libglapi.so.0", "usr/lib/libdrm.so.2"}) {
+            if (!new File(rootDir, lib).exists()) {
+                if (missing.length() > 0) missing.append(", ");
+                missing.append(lib.substring(lib.lastIndexOf('/') + 1));
+            }
+        }
+        if (missing.length() > 0) {
+            tvRootfsStatus.setText(getString(R.string.rootfs_missing_gl_libs, missing.toString()));
+            tvRootfsStatus.setTextColor(0xFFFFC107);
         }
     }
 }

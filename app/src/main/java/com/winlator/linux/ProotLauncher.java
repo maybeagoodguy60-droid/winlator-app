@@ -27,7 +27,6 @@ public class ProotLauncher {
         cmd.append(" -b /proc");                         // bind /proc
         cmd.append(" -b /sys");                          // bind /sys
         cmd.append(" -b /dev");                          // bind /dev
-        cmd.append(" -b /tmp");                          // bind /tmp
         cmd.append(" -b ").append(rootDir.getAbsolutePath()).append("/tmp/shm:/dev/shm"); // shared memory
         cmd.append(" -w /home/xuser");                   // working directory
         cmd.append(" -H");                               // fake hostname

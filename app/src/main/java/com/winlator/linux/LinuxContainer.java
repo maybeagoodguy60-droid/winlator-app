@@ -13,6 +13,7 @@ public class LinuxContainer extends Container {
     public static final String DEFAULT_ROOTFS_TYPE = "debian";
     public static final String DEFAULT_DESKTOP_ENV = "auto";
     public static final String DEFAULT_CPU_GOVERNOR = "ondemand";
+    public static final String DEFAULT_GRAPHICS_DRIVER = GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL;
     
     private String rootfsPath = "";
     private String rootfsType = DEFAULT_ROOTFS_TYPE;
@@ -23,7 +24,7 @@ public class LinuxContainer extends Container {
 
     public LinuxContainer(int id) {
         super(id);
-        setGraphicsDriver(GraphicsDrivers.VORTEK + "," + GraphicsDrivers.VIRGL);
+        setGraphicsDriver(DEFAULT_GRAPHICS_DRIVER);
     }
 
     public String getRootfsPath() {

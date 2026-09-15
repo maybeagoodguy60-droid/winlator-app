@@ -60,7 +60,7 @@ public abstract class RootFSInstaller {
         if (!rootFS.isValid() || rootFS.getVersion() < LATEST_VERSION) install(activity);
     }
 
-    private static boolean extractTarGz(File tarGzFile, File destDir) {
+    public static boolean extractTarGz(File tarGzFile, File destDir) {
         try {
             FileInputStream fis = new FileInputStream(tarGzFile);
             GZIPInputStream gis = new GZIPInputStream(fis);
@@ -129,18 +129,22 @@ public abstract class RootFSInstaller {
             try {
                 FileOutputStream fos = new FileOutputStream(bashrc);
                 fos.write("export DISPLAY=:0\n".getBytes());
-                fos.write("export PULSE_SERVER=127.0.0.1\n".getBytes());
+                fos.write("export PULSE_SERVER=/tmp/.sound/PS0\n".getBytes());
                 fos.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        // Create tmp directory
+        // Create tmp directory and socket dirs needed by the Android services
         File tmpDir = new File(rootDir, "/tmp");
         if (!tmpDir.exists()) {
             tmpDir.mkdirs();
         }
+        new File(rootDir, "/tmp/.X11-unix").mkdirs();
+        new File(rootDir, "/tmp/.virgl").mkdirs();
+        new File(rootDir, "/tmp/.sound").mkdirs();
+        new File(rootDir, "/tmp/.sysvshm").mkdirs();
     }
 
 
@@ -155,6 +159,34 @@ public abstract class RootFSInstaller {
                 setupHomeDirectory(targetRootDir);
             }
         });
+    }
+
+    public static boolean importFromUri(final Context context, final android.net.Uri uri, final File targetRootDir) {
+        try {
+            InputStream is = context.getContentResolver().openInputStream(uri);
+            if (is == null) return false;
+
+            File tempFile = new File(context.getCacheDir(), FILENAME);
+            FileOutputStream fos = new FileOutputStream(tempFile);
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = is.read(buffer)) > 0) {
+                fos.write(buffer, 0, len);
+            }
+            fos.close();
+            is.close();
+
+            clearRootDir(targetRootDir);
+            boolean success = extractTarGz(tempFile, targetRootDir);
+            tempFile.delete();
+            if (success) {
+                setupHomeDirectory(targetRootDir);
+            }
+            return success;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
     private static void clearRootDir(File rootDir) {
         if (rootDir.isDirectory()) {

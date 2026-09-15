@@ -417,4 +417,6 @@
     <string name="rootfs_validate_ok">Valid rootfs detected</string>
     <string name="rootfs_validate_fail">No valid rootfs found at this path</string>
     <string name="rootfs_select_hint">Select an extracted rootfs directory or enter path manually</string>
+    <string name="rootfs_importing">Importing rootfs...</string>
+    <string name="rootfs_missing_gl_libs">Rootfs missing graphics libs: %1$s</string>
 </resources>
