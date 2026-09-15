@@ -428,7 +428,6 @@
     <string name="cap_proot">Proot Containers</string>
     <string name="cap_proot_detail">Full Linux without root</string>
     <string name="root_required_prompt">Root access is required for this container type. Grant root access to continue?</string>
-    <string name="rootfs_path">Rootfs Path</string>
     <string name="rootfs_browse">Browse</string>
     <string name="rootfs_validate_ok">Valid rootfs detected</string>
     <string name="rootfs_validate_fail">No valid rootfs found at this path</string>
