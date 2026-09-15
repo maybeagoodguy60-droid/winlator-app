@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory;
 
 import com.winlator.core.FileUtils;
 import com.winlator.core.StringUtils;
-import com.winlator.core.WineUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -141,7 +140,7 @@ public class Shortcut {
 
     public File getLinkFile() {
         if (isLinkPath()) {
-            return new File(WineUtils.dosToUnixPath(path, container));
+            return new File(path);
         }
         else {
             String name = file.getName().replace(".desktop", ".lnk");
