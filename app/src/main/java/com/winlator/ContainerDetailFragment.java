@@ -123,8 +123,6 @@ public class ContainerDetailFragment extends Fragment {
         }
         else etName.setText(getString(R.string.container)+"-"+manager.getNextContainerId());
 
-        }, R.id.LLTabWineConfiguration, R.id.LLTabWinComponents, R.id.LLTabEnvVars, R.id.LLTabDrives, R.id.LLTabAdvanced);
-
         view.findViewById(R.id.BTConfirm).setOnClickListener((v) -> {
             try {
                 String name = etName.getText().toString();
@@ -134,8 +132,6 @@ public class ContainerDetailFragment extends Fragment {
                 String graphicsDriverConfig = graphicsDriverPicker.getGraphicsDriverConfig();
                 String audioDriverConfig = vAudioDriverConfig.getTag().toString();
                 String audioDriver = StringUtils.parseIdentifier(sAudioDriver.getSelectedItem());
-                String wincomponents = getWinComponents(view);
-                String drives = getDrives(view);
                 byte hudMode = (byte)sHUDMode.getSelectedItemPosition();
                 String cpuList = cpuListView.getCheckedCPUListAsString();
                 String cpuListWoW64 = cpuListViewWoW64.getCheckedCPUListAsString();
@@ -151,13 +147,11 @@ public class ContainerDetailFragment extends Fragment {
                     container.setGraphicsDriverConfig(graphicsDriverConfig);
                     container.setAudioDriver(audioDriver);
                     container.setAudioDriverConfig(audioDriverConfig);
-                    container.setWinComponents(wincomponents);
-                    container.setDrives(drives);
                     container.setHUDMode(hudMode);
                     container.setStartupSelection(startupSelection);
                     container.saveData();
 
-                                getActivity().onBackPressed();
+                    getActivity().onBackPressed();
                 }
                 else {
                     JSONObject data = new JSONObject();
@@ -173,14 +167,11 @@ public class ContainerDetailFragment extends Fragment {
                     data.put("hudMode", hudMode);
                     data.put("startupSelection", startupSelection);
 
-                    if (wineInfos.size() > 1) {
-                        }
-
                     preloaderDialog.show(R.string.creating_container);
                     manager.createContainerAsync(data, (container) -> {
                         if (container != null) {
                             this.container = container;
-                                }
+                        }
                         preloaderDialog.close();
                         getActivity().onBackPressed();
                     });
@@ -230,95 +221,12 @@ public class ContainerDetailFragment extends Fragment {
         }
     }
 
-    public static String getWinComponents(View view) {
-        ViewGroup parent = view.findViewById(R.id.LLTabWinComponents);
-        ArrayList<View> views = new ArrayList<>();
-        AppUtils.findViewsWithClass(parent, Spinner.class, views);
-        String[] wincomponents = new String[views.size()];
-
-        for (int i = 0; i < views.size(); i++) {
-            Spinner spinner = (Spinner)views.get(i);
-            wincomponents[i] = spinner.getTag()+"="+spinner.getSelectedItemPosition();
-        }
-        return String.join(",", wincomponents);
-    }
-
-    public static void createWinComponentsTab(View view, String wincomponents) {
-        Context context = view.getContext();
-        LayoutInflater inflater = LayoutInflater.from(context);
-        ViewGroup tabView = view.findViewById(R.id.LLTabWinComponents);
-        ViewGroup directxSectionView = tabView.findViewById(R.id.LLWinComponentsDirectX);
-        ViewGroup generalSectionView = tabView.findViewById(R.id.LLWinComponentsGeneral);
-
-        for (String[] wincomponent : new KeyValueSet(wincomponents)) {
-            final String name = wincomponent[0];
-            ViewGroup parent = name.startsWith("direct") || name.startsWith("x") ? directxSectionView : generalSectionView;
-            View itemView = inflater.inflate(R.layout.wincomponent_list_item, parent, false);
-            ((TextView)itemView.findViewById(R.id.TextView)).setText(StringUtils.getString(context, name));
-            Spinner spinner = itemView.findViewById(R.id.Spinner);
-            spinner.setSelection(Integer.parseInt(wincomponent[1]), false);
-            spinner.setTag(name);
-            parent.addView(itemView);
-        }
-    }
-
     private EnvVarsView createEnvVarsTab(final View view) {
         final Context context = view.getContext();
         final EnvVarsView envVarsView = view.findViewById(R.id.EnvVarsView);
         envVarsView.setEnvVars(new EnvVars(isEditMode() ? container.getEnvVars() : Container.DEFAULT_ENV_VARS));
         view.findViewById(R.id.BTAddEnvVar).setOnClickListener((v) -> (new AddEnvVarDialog(context, envVarsView)).show());
         return envVarsView;
-    }
-
-    private void showDriveSearchPopupMenu(View anchorView, final Drive drive, final EditText editText) {
-        final FragmentActivity activity = getActivity();
-        final Fragment $this = ContainerDetailFragment.this;
-
-        PopupMenu popupMenu = new PopupMenu(activity, anchorView);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) popupMenu.setForceShowIcon(true);
-        popupMenu.inflate(R.menu.drive_search_popup_menu);
-        Menu menu = popupMenu.getMenu();
-        SubMenu subMenu = menu.findItem(R.id.menu_item_locations).getSubMenu();
-        ArrayList<Container> containers = manager.getContainers();
-        for (int i = 0; i < containers.size(); i++) {
-            Container container = containers.get(i);
-            subMenu.add(0, 0, container.id, container.getName()+" (Drive C:)");
-        }
-
-        popupMenu.setOnMenuItemClickListener((menuItem) -> {
-            int itemId = menuItem.getItemId();
-            switch (itemId) {
-                case R.id.menu_item_open_directory:
-                    openDirectoryCallback = (path) -> {
-                        drive.path = path;
-                        editText.setText(path);
-                    };
-
-                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, Uri.fromFile(Environment.getExternalStorageDirectory()));
-                    activity.startActivityFromFragment($this, intent, MainActivity.OPEN_DIRECTORY_REQUEST_CODE);
-                    break;
-                case R.id.menu_item_downloads:
-                    drive.path = AppUtils.DIRECTORY_DOWNLOADS;
-                    editText.setText(AppUtils.DIRECTORY_DOWNLOADS);
-                    break;
-                case R.id.menu_item_internal_storage:
-                    drive.path = AppUtils.INTERNAL_STORAGE;
-                    editText.setText(AppUtils.INTERNAL_STORAGE);
-                    break;
-                default:
-                    Container container = manager.getContainerById(menuItem.getOrder());
-                    if (container != null) {
-                        String path = container.getRootDir()+"/.wine/drive_c";
-                        drive.path = path;
-                        editText.setText(path);
-                    }
-                    break;
-            }
-            return true;
-        });
-
-        popupMenu.show();
     }
 
 }
