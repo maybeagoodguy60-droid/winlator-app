@@ -14,10 +14,11 @@ jobs:
   transform:
     runs-on: ubuntu-latest
     steps:
+      - name: Setup gh auth
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Phase 1 - Core Transformation
         run: |
