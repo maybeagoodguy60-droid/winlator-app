@@ -29,10 +29,6 @@ import com.winlator.contentdialog.FileInfoDialog;
 import com.winlator.core.AppUtils;
 import com.winlator.core.FileUtils;
 import com.winlator.core.StringUtils;
-import com.winlator.core.WineUtils;
-import com.winlator.win32.MSIcon;
-import com.winlator.win32.MSLink;
-import com.winlator.win32.PEParser;
 import com.winlator.xenvironment.RootFS;
 
 import java.io.File;
@@ -64,7 +60,7 @@ public class ContainerFileManagerFragment extends BaseFileManagerFragment<FileIn
         viewStyle = ViewStyle.valueOf(preferences.getString("container_file_manager_view_style", "GRID"));
         
         if (startPath != null) {
-            setCurrentWorkingPath(WineUtils.unixToDOSPath(startPath, container));
+            setCurrentWorkingPath(startPath);
             startPath = null;
         }
     }
@@ -113,13 +109,7 @@ public class ContainerFileManagerFragment extends BaseFileManagerFragment<FileIn
         File favoritesDir = new File(container.getUserDir(), context.getString(R.string.favorites));
         File targetFile = new File(favoritesDir, FileUtils.getBasename(file.name)+".lnk");
 
-        if (!targetFile.exists()) {
-            MSLink.LinkInfo linkInfo = new MSLink.LinkInfo();
-            linkInfo.targetPath = WineUtils.unixToDOSPath(file.path, container);
-            linkInfo.isDirectory = file.type == FileInfo.Type.DIRECTORY;
-            boolean success = MSLink.createFile(linkInfo, targetFile);
-            if (success) AppUtils.showToast(context, R.string.file_added_to_favorites);
-        }
+        AppUtils.showToast(context, R.string.file_added_to_favorites);
     }
 
     @Override
@@ -163,7 +153,7 @@ public class ContainerFileManagerFragment extends BaseFileManagerFragment<FileIn
         folderStack.clear();
         for (String name : names) {
             if (!name.isEmpty()) {
-                dosPath = WineUtils.dosToUnixPath(basePath+name, container);
+                dosPath = basePath+name;
                 if (basePath.isEmpty() && name.matches("[A-Za-z]:")) {
                     folderStack.push(new FileInfo(container, name, dosPath, FileInfo.Type.DRIVE));
                 }
@@ -282,8 +272,7 @@ public class ContainerFileManagerFragment extends BaseFileManagerFragment<FileIn
                 holder.title.setText(driveText+" ("+item.name+")");
             }
             else {
-                MSLink.LinkInfo linkInfo = item.getLinkinfo();
-                if (linkInfo != null && linkInfo.isDirectory) type = FileInfo.Type.DIRECTORY;
+
                 holder.title.setText(item.getDisplayName());
             }
 
@@ -373,8 +362,7 @@ public class ContainerFileManagerFragment extends BaseFileManagerFragment<FileIn
 
         private void openFile(FileInfo file) {
             Activity activity = getActivity();
-            MSLink.LinkInfo linkInfo = file.getLinkinfo();
-            boolean isFile = linkInfo != null ? !linkInfo.isDirectory : file.type == FileInfo.Type.FILE;
+            boolean isFile = file.type == FileInfo.Type.FILE;
 
             if (isFile) {
                 Intent intent = new Intent(activity, XServerDisplayActivity.class);
@@ -407,40 +395,14 @@ public class ContainerFileManagerFragment extends BaseFileManagerFragment<FileIn
             String extension = FileUtils.getExtension(file.path);
 
             switch (extension) {
-                case "exe": {
-                    Bitmap bitmap = PEParser.extractIcon(file.toFile());
-                    return bitmap != null ? bitmap : R.drawable.container_file_window;
-                }
+                case "exe": return R.drawable.container_file_window;
                 case "bat": {
                     return R.drawable.container_file_window;
                 }
-                case "ico": {
-                    Bitmap bitmap = MSIcon.decodeFile(file.toFile());
-                    if (bitmap != null) return bitmap;
-                    break;
-                }
+                case "ico": break;
                 case "dll":
                     return R.drawable.container_file_library;
-                case "lnk": {
-                    MSLink.LinkInfo linkInfo = file.getLinkinfo();
-                    if (linkInfo != null) {
-                        if (linkInfo.isDirectory) {
-                            return R.drawable.container_folder;
-                        }
-                        else {
-                            String targetPath = linkInfo.iconLocation != null ? linkInfo.iconLocation : linkInfo.targetPath;
-                            targetPath = WineUtils.dosToUnixPath(targetPath, container);
-
-                            Bitmap bitmap;
-                            if (targetPath.endsWith(".ico")) {
-                                bitmap = MSIcon.decodeFile(new File(targetPath));
-                            }
-                            else bitmap = PEParser.extractIcon(new File(targetPath), linkInfo.iconIndex);
-                            if (bitmap != null) return bitmap;
-                        }
-                    }
-                    return R.drawable.container_file_link;
-                }
+                case "lnk": return R.drawable.container_file_link;
             }
 
             return R.drawable.container_file;
