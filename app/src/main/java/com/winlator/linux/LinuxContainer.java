@@ -94,6 +94,7 @@ public class LinuxContainer extends Container {
             data.put("desktopEnv", desktopEnv);
             data.put("launchCommand", launchCommand);
             data.put("cpuGovernor", cpuGovernor);
+            data.put("extraData", getExtraData() != null ? getExtraData() : new JSONObject());
             FileUtils.writeString(getConfigFile(), data.toString());
         } catch (JSONException e) {}
     }
@@ -117,6 +118,7 @@ public class LinuxContainer extends Container {
                 case "desktopEnv": setDesktopEnv(data.getString(key)); break;
                 case "launchCommand": setLaunchCommand(data.getString(key)); break;
                 case "cpuGovernor": setCpuGovernor(data.getString(key)); break;
+                case "extraData": setExtraData(data.getJSONObject(key)); break;
             }
         }
     }

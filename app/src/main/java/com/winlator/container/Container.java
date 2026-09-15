@@ -200,6 +200,10 @@ public class Container {
         this.extraData = extraData;
     }
 
+    public JSONObject getExtraData() {
+        return extraData;
+    }
+
     public String getExtra(String name) {
         return getExtra(name, "");
     }

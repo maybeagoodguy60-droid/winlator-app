@@ -187,6 +187,8 @@ public class ContainerDetailFragment extends Fragment {
                     container.setLaunchCommand(launchCommand);
                     container.setCpuGovernor(cpuGovernor);
                     container.setRootfsPath(getRootfsPathFromUI());
+                    container.putExtra("desktopEnv", desktopEnv);
+                    container.putExtra("launchCommand", launchCommand);
                     container.saveData();
                 }
                 else {
@@ -224,6 +226,11 @@ public class ContainerDetailFragment extends Fragment {
                     data.put("cpuGovernor", cpuGovernor);
                     data.put("rootfsType", LinuxContainer.DEFAULT_ROOTFS_TYPE);
                     data.put("rootfsPath", rootfsPath);
+
+                    JSONObject extraData = new JSONObject();
+                    extraData.put("desktopEnv", desktopEnv);
+                    extraData.put("launchCommand", launchCommand);
+                    data.put("extraData", extraData);
 
                     preloaderDialog.show(R.string.creating_container);
                     manager.createContainerAsync(data, (createdContainer) -> {

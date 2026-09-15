@@ -382,11 +382,21 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         if (container != null) {
             if (container.getHUDMode() == FrameRating.Mode.FULL.ordinal()) envVars.put("X11_WND_GPU_INFO", "1");
 
-            String guestExecutable = LinuxSessionLauncher.buildLaunchCommand(rootFS.getRootDir(), container.getExtra("desktopEnv", "auto"), container.getExtra("launchCommand", ""));
-            guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
+            String desktopEnv;
+            String launchCommand;
             if (container instanceof LinuxContainer) {
-                guestProgramLauncherComponent.setCpuGovernor(((LinuxContainer) container).getCpuGovernor());
+                LinuxContainer linuxContainer = (LinuxContainer) container;
+                desktopEnv = linuxContainer.getDesktopEnv();
+                launchCommand = linuxContainer.getLaunchCommand();
+                guestProgramLauncherComponent.setCpuGovernor(linuxContainer.getCpuGovernor());
             }
+            else {
+                desktopEnv = container.getExtra("desktopEnv", "auto");
+                launchCommand = container.getExtra("launchCommand", "");
+            }
+
+            String guestExecutable = LinuxSessionLauncher.buildLaunchCommand(rootFS.getRootDir(), desktopEnv, launchCommand);
+            guestProgramLauncherComponent.setGuestExecutable(guestExecutable);
 
             envVars.putAll(container.getEnvVars());
 
