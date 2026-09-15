@@ -191,38 +191,7 @@
         <item>Stability</item>
         <item>Custom</item>
     </string-array>
-    <string-array name="rootfs_type_entries">
-        <item>Debian</item>
-        <item>Ubuntu</item>
-        <item>Arch Linux</item>
-        <item>Alpine Linux</item>
-        <item>Fedora</item>
-        <item>Custom</item>
-    </string-array>
 
-    <string-array name="desktop_env_entries">
-        <item>Auto Detect</item>
-        <item>XFCE</item>
-        <item>LXQt</item>
-        <item>KDE Plasma</item>
-        <item>GNOME</item>
-        <item>MATE</item>
-        <item>Terminal Only</item>
-    </string-array>
 
-    <string-array name="cpu_governor_entries">
-        <item>ondemand</item>
-        <item>performance</item>
-        <item>powersave</item>
-        <item>conservative</item>
-        <item>schedutil</item>
-    </string-array>
 
-    <string-array name="linux_preset_entries">
-        <item>Balanced</item>
-        <item>Performance</item>
-        <item>Power Saving</item>
-        <item>Stability</item>
-        <item>Custom</item>
-    </string-array>
 </resources>
