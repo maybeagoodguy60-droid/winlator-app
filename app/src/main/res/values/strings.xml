@@ -380,4 +380,6 @@
     <!-- Linux X Strings -->
     <!-- Linux X Strings -->
     <!-- Linux X Strings -->
+<string name="builtin_wine">Builtin Wine</string>
+    <string name="native_windows">Native Windows</string>
 </resources>
