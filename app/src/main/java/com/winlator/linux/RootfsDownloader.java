@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.HttpURLConnection;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public abstract class RootfsDownloader {

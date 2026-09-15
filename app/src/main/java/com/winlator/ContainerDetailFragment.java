@@ -135,7 +135,7 @@ public class ContainerDetailFragment extends Fragment {
         loadScreenSizeSpinner(view, isEditMode() ? container.getScreenSize() : Container.DEFAULT_SCREEN_SIZE);
         envVarsView = createEnvVarsTab(view);
 
-        cpuListView.setCPUListAsChecked(isEditMode() ? container.getCPUList() : CPUListView.getDefaultCPUListAsString());
+        cpuListView.setCheckedCPUList(isEditMode() ? container.getCPUList(true) : Container.getFallbackCPUList());
 
         setupTabs(view);
 
