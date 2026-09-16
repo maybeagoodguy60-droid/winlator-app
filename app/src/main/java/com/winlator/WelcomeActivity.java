@@ -1,7 +1,6 @@
 package com.winlator;
 
-
-import android.content.Context;
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -10,20 +9,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.winlator.core.RootAccessHelper;
-import com.winlator.core.AppUtils;
-import com.winlator.core.LocaleHelper;
-import androidx.appcompat.app.AppCompatActivity;
 
-public class WelcomeActivity extends AppCompatActivity {
-    @Override
-    protected void attachBaseContext(Context newBase) {
-        super.attachBaseContext(LocaleHelper.setSystemLocale(newBase));
-    }
-
+public class WelcomeActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        AppUtils.setActivityTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_welcome);
 
