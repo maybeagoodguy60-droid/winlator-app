@@ -79,7 +79,7 @@ public abstract class RootFSInstaller {
     public static boolean extractArchive(File archiveFile, File destDir, ProgressCallback callback) {
         try {
             long totalBytes = 0;
-            try (ArchiveInputStream<? extends ArchiveEntry> ais = openArchive(archiveFile)) {
+            try (ArchiveInputStream ais = openArchive(archiveFile)) {
                 ArchiveEntry entry;
                 while ((entry = ais.getNextEntry()) != null) {
                     totalBytes += entry.getSize();
@@ -87,7 +87,7 @@ public abstract class RootFSInstaller {
             }
 
             long currentBytes = 0;
-            try (ArchiveInputStream<? extends ArchiveEntry> ais = openArchive(archiveFile)) {
+            try (ArchiveInputStream ais = openArchive(archiveFile)) {
                 ArchiveEntry entry;
                 byte[] buffer = new byte[8192];
                 int lastPercent = -1;
@@ -123,7 +123,7 @@ public abstract class RootFSInstaller {
         }
     }
 
-    private static ArchiveInputStream<? extends ArchiveEntry> openArchive(File archiveFile) throws IOException {
+    private static ArchiveInputStream openArchive(File archiveFile) throws IOException {
         String name = archiveFile.getName().toLowerCase();
         FileInputStream fis = new FileInputStream(archiveFile);
 
