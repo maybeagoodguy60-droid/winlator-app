@@ -48,7 +48,7 @@ public class WelcomeActivity extends Activity {
             addCapability(capabilitiesList, "Chroot Containers", false, "Requires root access");
         } else {
             rootStatus.setText("Root: Not detected (not required)");
-            rootStatus.setTextColor(resolveAttrColor(com.google.android.material.R.attr.colorSecondaryText));
+            rootStatus.setTextColor(resolveAttrColor(R.attr.colorSecondaryText));
             btnGrantRoot.setVisibility(View.GONE);
             addCapability(capabilitiesList, "Proot Containers", true, "Full Linux without root");
             addCapability(capabilitiesList, "Chroot Containers", false, "Requires rooted device");
@@ -93,7 +93,7 @@ public class WelcomeActivity extends Activity {
         tvName.setText(name);
         tvDetail.setText(detail);
         int green = 0xFF4CAF50;
-        int unavailable = resolveAttrColor(com.google.android.material.R.attr.colorSecondaryText);
+        int unavailable = resolveAttrColor(R.attr.colorSecondaryText);
         statusDot.setBackgroundColor(available ? green : unavailable);
         tvName.setAlpha(available ? 1.0f : 0.5f);
 
