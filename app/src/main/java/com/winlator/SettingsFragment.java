@@ -18,6 +18,8 @@ import android.widget.CheckBox;
 import android.widget.LinearLayout;
 import android.widget.RadioGroup;
 import android.widget.Spinner;
+import android.widget.EditText;
+import android.widget.Button;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
@@ -59,6 +61,7 @@ public class SettingsFragment extends Fragment {
     public static final byte APP_THEME_DARK = 1;
     private PreloaderDialog preloaderDialog;
     private SharedPreferences preferences;
+    private static final int REQUEST_PICK_ROOTFS_DIR = 1002;
     private boolean midiDeviceCallbackRegistered = false;
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -71,9 +74,7 @@ public class SettingsFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle(R.string.settings);
     }
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -86,6 +87,7 @@ public class SettingsFragment extends Fragment {
         loadGamepadPlayerConfigs(view);
         loadLanguageAndThemeControls(view);
         loadSystemCheckBoxes(view);
+        loadRootfsPathControl(view);
 
         final Spinner sSoundFont = view.findViewById(R.id.SSoundFont);
         String soundfont = preferences.getString("soundfont", null);
@@ -137,6 +139,26 @@ public class SettingsFragment extends Fragment {
         ((android.widget.CheckBox)view.findViewById(R.id.CBEnableBackgroundWakelock)).setChecked(preferences.getBoolean("enable_background_wakelock", false));
         ((android.widget.CheckBox)view.findViewById(R.id.CBSaveMemOnRunFromSteam)).setChecked(preferences.getBoolean("save_mem_on_run_from_steam", false));
     }
+    private void loadRootfsPathControl(View view) {
+        final EditText etRootfsPath = view.findViewById(R.id.ETRootfsPath);
+        String path = preferences.getString("rootfs_path", "");
+        etRootfsPath.setText(path);
+        view.findViewById(R.id.BTBrowseRootfsPath).setOnClickListener((v) -> {
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            startActivityForResult(intent, REQUEST_PICK_ROOTFS_DIR);
+        });
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if (requestCode == REQUEST_PICK_ROOTFS_DIR && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+            final EditText etRootfsPath = getView() != null ? getView().findViewById(R.id.ETRootfsPath) : null;
+            if (etRootfsPath == null) return;
+            String path = FileUtils.getFilePathFromUri(data.getData());
+            etRootfsPath.setText(path != null ? path : "");
+        }
+    }
+
     private void onConfirmClicked(View view) {
         int oldTheme = preferences.getInt("app_theme", APP_THEME_DARK);
         int oldLanguageIndex = preferences.getInt("lc_index", -1);
@@ -171,6 +193,11 @@ public class SettingsFragment extends Fragment {
         editor.putBoolean("enable_background_protection", ((android.widget.CheckBox)view.findViewById(R.id.CBEnableBackgroundProtection)).isChecked());
         editor.putBoolean("enable_background_wakelock", ((android.widget.CheckBox)view.findViewById(R.id.CBEnableBackgroundWakelock)).isChecked());
         editor.putBoolean("save_mem_on_run_from_steam", ((android.widget.CheckBox)view.findViewById(R.id.CBSaveMemOnRunFromSteam)).isChecked());
+
+        android.widget.EditText etRootfsPath = view.findViewById(R.id.ETRootfsPath);
+        String rootfsPath = etRootfsPath.getText().toString().trim();
+        if (rootfsPath.isEmpty()) editor.remove("rootfs_path");
+        else editor.putString("rootfs_path", rootfsPath);
 
         editor.apply();
         Toast toast = Toast.makeText(getContext(), R.string.rootfs_installed, Toast.LENGTH_SHORT);

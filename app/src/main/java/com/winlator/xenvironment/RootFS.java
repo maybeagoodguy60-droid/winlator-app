@@ -2,6 +2,8 @@ package com.winlator.xenvironment;
 
 import android.content.Context;
 
+import androidx.preference.PreferenceManager;
+
 import androidx.annotation.NonNull;
 
 import com.winlator.core.FileUtils;
@@ -22,6 +24,13 @@ public class RootFS {
     }
 
     public static RootFS find(Context context) {
+        // Custom rootfs/chroot directory set in Settings (preferred, no extraction needed)
+        String customPath = PreferenceManager.getDefaultSharedPreferences(context).getString("rootfs_path", "");
+        if (customPath != null && !customPath.isEmpty()) {
+            File customDir = new File(customPath);
+            if (customDir.isDirectory()) return new RootFS(customDir);
+        }
+
         File legacyDir = new File(context.getFilesDir(), "imagefs");
         File rootDir = new File(context.getFilesDir(), "rootfs");
         if (legacyDir.isDirectory()) legacyDir.renameTo(rootDir);
@@ -37,6 +46,10 @@ public class RootFS {
     }
 
     public boolean isValid() {
+        if (rootDir.isDirectory() &&
+            (new File(rootDir, "bin/bash").exists() || new File(rootDir, "etc/os-release").exists())) {
+            return true;
+        }
         return rootDir.isDirectory() && getRFSVersionFile().exists();
     }
 
