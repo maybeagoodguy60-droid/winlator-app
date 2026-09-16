@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.widget.Toast;
 import android.media.midi.MidiDeviceInfo;
 import android.media.midi.MidiManager;
 import android.os.Bundle;
@@ -172,7 +173,7 @@ public class SettingsFragment extends Fragment {
         editor.putBoolean("save_mem_on_run_from_steam", ((android.widget.CheckBox)view.findViewById(R.id.CBSaveMemOnRunFromSteam)).isChecked());
 
         editor.apply();
-        Toast toast = Toast.makeText(getContext(), R.string.settings_saved, Toast.LENGTH_SHORT);
+        Toast toast = Toast.makeText(getContext(), R.string.rootfs_installed, Toast.LENGTH_SHORT);
         toast.show();
 
         int newLanguageIndex = preferences.getInt("lc_index", oldLanguageIndex);

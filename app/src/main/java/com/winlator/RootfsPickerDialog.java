@@ -1,4 +1,4 @@
-package com.winlator.contentdialog;
+package com.winlator;
 
 import android.content.Context;
 import android.view.LayoutInflater;
