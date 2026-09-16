@@ -143,10 +143,25 @@ public class SettingsFragment extends Fragment {
         final EditText etRootfsPath = view.findViewById(R.id.ETRootfsPath);
         String path = preferences.getString("rootfs_path", "");
         etRootfsPath.setText(path);
+        etRootfsPath.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) {
+                saveRootfsPath((android.widget.EditText) v);
+                return true;
+            }
+            return false;
+        });
         view.findViewById(R.id.BTBrowseRootfsPath).setOnClickListener((v) -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
             startActivityForResult(intent, REQUEST_PICK_ROOTFS_DIR);
         });
+    }
+
+    private void saveRootfsPath(android.widget.EditText etRootfsPath) {
+        String rootfsPath = etRootfsPath.getText().toString().trim();
+        SharedPreferences.Editor editor = preferences.edit();
+        if (rootfsPath.isEmpty()) editor.remove("rootfs_path");
+        else editor.putString("rootfs_path", rootfsPath);
+        editor.apply();
     }
 
     @Override
@@ -195,9 +210,7 @@ public class SettingsFragment extends Fragment {
         editor.putBoolean("save_mem_on_run_from_steam", ((android.widget.CheckBox)view.findViewById(R.id.CBSaveMemOnRunFromSteam)).isChecked());
 
         android.widget.EditText etRootfsPath = view.findViewById(R.id.ETRootfsPath);
-        String rootfsPath = etRootfsPath.getText().toString().trim();
-        if (rootfsPath.isEmpty()) editor.remove("rootfs_path");
-        else editor.putString("rootfs_path", rootfsPath);
+        saveRootfsPath(etRootfsPath);
 
         editor.apply();
         Toast toast = Toast.makeText(getContext(), R.string.rootfs_installed, Toast.LENGTH_SHORT);

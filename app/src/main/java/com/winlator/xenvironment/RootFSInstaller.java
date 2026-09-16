@@ -16,10 +16,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.Executors;
-import java.util.zip.GZIPInputStream;
 
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveInputStream;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
+import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
+import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
+import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream;
 
 public abstract class RootFSInstaller {
     public interface ProgressCallback {
@@ -70,26 +73,26 @@ public abstract class RootFSInstaller {
     }
 
     public static boolean extractTarGz(File tarGzFile, File destDir, ProgressCallback callback) {
+        return extractArchive(tarGzFile, destDir, callback);
+    }
+
+    public static boolean extractArchive(File archiveFile, File destDir, ProgressCallback callback) {
         try {
             long totalBytes = 0;
-            try (FileInputStream fis = new FileInputStream(tarGzFile);
-                 GZIPInputStream gis = new GZIPInputStream(fis);
-                 TarArchiveInputStream tis = new TarArchiveInputStream(gis)) {
-                TarArchiveEntry entry;
-                while ((entry = tis.getNextTarEntry()) != null) {
+            try (ArchiveInputStream<? extends ArchiveEntry> ais = openArchive(archiveFile)) {
+                ArchiveEntry entry;
+                while ((entry = ais.getNextEntry()) != null) {
                     totalBytes += entry.getSize();
                 }
             }
 
             long currentBytes = 0;
-            try (FileInputStream fis = new FileInputStream(tarGzFile);
-                 GZIPInputStream gis = new GZIPInputStream(fis);
-                 TarArchiveInputStream tis = new TarArchiveInputStream(gis)) {
-                TarArchiveEntry entry;
+            try (ArchiveInputStream<? extends ArchiveEntry> ais = openArchive(archiveFile)) {
+                ArchiveEntry entry;
                 byte[] buffer = new byte[8192];
                 int lastPercent = -1;
 
-                while ((entry = tis.getNextTarEntry()) != null) {
+                while ((entry = ais.getNextEntry()) != null) {
                     File outFile = new File(destDir, entry.getName());
 
                     if (entry.isDirectory()) {
@@ -98,7 +101,7 @@ public abstract class RootFSInstaller {
                         outFile.getParentFile().mkdirs();
                         try (FileOutputStream fos = new FileOutputStream(outFile)) {
                             int len;
-                            while ((len = tis.read(buffer)) > 0) {
+                            while ((len = ais.read(buffer)) > 0) {
                                 fos.write(buffer, 0, len);
                                 currentBytes += len;
                                 if (callback != null && totalBytes > 0) {
@@ -114,8 +117,65 @@ public abstract class RootFSInstaller {
                 }
             }
             return true;
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            return false;
+        }
+    }
+
+    private static ArchiveInputStream<? extends ArchiveEntry> openArchive(File archiveFile) throws IOException {
+        String name = archiveFile.getName().toLowerCase();
+        FileInputStream fis = new FileInputStream(archiveFile);
+
+        if (name.endsWith(".zip") || isZip(fis)) {
+            return new ZipArchiveInputStream(fis);
+        }
+
+        if (name.endsWith(".tar.gz") || name.endsWith(".tgz") || isGzip(fis)) {
+            return new TarArchiveInputStream(new java.util.zip.GZIPInputStream(fis));
+        }
+        if (name.endsWith(".tar.xz") || name.endsWith(".txz") || name.endsWith(".xz") || isXz(fis)) {
+            return new TarArchiveInputStream(new XZCompressorInputStream(fis));
+        }
+        if (name.endsWith(".tar.zst") || name.endsWith(".tzst")) {
+            return new TarArchiveInputStream(new ZstdCompressorInputStream(fis));
+        }
+        return new TarArchiveInputStream(fis);
+    }
+
+    private static boolean isGzip(InputStream in) throws IOException {
+        try {
+            if (!in.markSupported()) return false;
+            in.mark(2);
+            boolean ok = in.read() == 0x1f && in.read() == 0x8b;
+            in.reset();
+            return ok;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static boolean isXz(InputStream in) throws IOException {
+        try {
+            if (!in.markSupported()) return false;
+            in.mark(8);
+            boolean ok = (in.read() == 0xfd) && (in.read() == 0x37) && (in.read() == 0x7a) && (in.read() == 0x58) &&
+                         (in.read() == 0x5a) && (in.read() == 0x00);
+            in.reset();
+            return ok;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    private static boolean isZip(InputStream in) throws IOException {
+        try {
+            if (!in.markSupported()) return false;
+            in.mark(4);
+            boolean ok = in.read() == 0x50 && in.read() == 0x4b && (in.read() == 0x03 || in.read() == 0x05);
+            in.reset();
+            return ok;
+        } catch (Exception e) {
             return false;
         }
     }
@@ -192,10 +252,19 @@ public abstract class RootFSInstaller {
 
     public static boolean importFromUri(final Context context, final android.net.Uri uri, final File targetRootDir, final ProgressCallback callback) {
         try {
+            long fileSize = 0;
+            try (android.database.Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE);
+                    if (sizeIndex >= 0) fileSize = cursor.getLong(sizeIndex);
+                }
+            }
+
             InputStream is = context.getContentResolver().openInputStream(uri);
             if (is == null) return false;
 
-            File tempFile = new File(context.getCacheDir(), FILENAME);
+            String name = getUriName(context, uri);
+            File tempFile = new File(context.getCacheDir(), name != null ? name : FILENAME);
             FileOutputStream fos = new FileOutputStream(tempFile);
             byte[] buffer = new byte[8192];
             int len;
@@ -205,15 +274,15 @@ public abstract class RootFSInstaller {
                 fos.write(buffer, 0, len);
                 total += len;
                 if (callback != null) {
-                    int percent = (int)Math.min(90, total / 1024 / 1024);
-                    callback.onProgress(Math.min(percent, 90), "Copying rootfs file...");
+                    int percent = fileSize > 0 ? (int)Math.min(90, total * 90 / fileSize) : 0;
+                    callback.onProgress(percent, "Copying rootfs file...");
                 }
             }
             fos.close();
             is.close();
 
             clearRootDir(targetRootDir);
-            boolean success = extractTarGz(tempFile, targetRootDir, (p, path) -> {
+            boolean success = extractArchive(tempFile, targetRootDir, (p, path) -> {
                 if (callback != null) callback.onProgress(90 + p / 10, path);
             });
             tempFile.delete();
@@ -228,6 +297,18 @@ public abstract class RootFSInstaller {
             return false;
         }
     }
+
+    private static String getUriName(Context context, android.net.Uri uri) {
+        try (android.database.Cursor cursor = context.getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0) return cursor.getString(nameIndex);
+            }
+        } catch (Exception ignored) {}
+        String lastSegment = uri.getLastPathSegment();
+        return lastSegment != null ? lastSegment : null;
+    }
+
     public static boolean prepareSocketDirs(File rootDir) {
         String[] dirs = {
             "/tmp/.X11-unix", "/tmp/.virgl", "/tmp/.sound",

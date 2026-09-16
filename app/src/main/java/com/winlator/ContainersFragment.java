@@ -130,7 +130,7 @@ public class ContainersFragment extends Fragment {
         final DownloadProgressDialog dialog = new DownloadProgressDialog(requireActivity());
         dialog.show(R.string.import_rootfs);
         new Thread(() -> {
-            File rootDir = new File(getContext().getFilesDir(), "rootfs");
+            File rootDir = RootFS.find(getContext()).getRootDir();
             boolean success = RootFSInstaller.importFromUri(getContext(), uri, rootDir, (percent, path) -> {
                 requireActivity().runOnUiThread(() -> {
                     dialog.setProgress(percent);
@@ -142,7 +142,7 @@ public class ContainersFragment extends Fragment {
                 if (success) {
                     Toast.makeText(getContext(), R.string.rootfs_validate_ok, Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(getContext(), R.string.rootfs_validate_fail, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), getString(R.string.rootfs_validate_fail) + "\n" + rootDir.getAbsolutePath(), Toast.LENGTH_LONG).show();
                 }
                 loadContainersList();
             });
