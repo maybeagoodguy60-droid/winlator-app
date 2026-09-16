@@ -28,7 +28,7 @@ public class RootFS {
         String customPath = PreferenceManager.getDefaultSharedPreferences(context).getString("rootfs_path", "");
         if (customPath != null && !customPath.isEmpty()) {
             File customDir = new File(customPath);
-            if (customDir.isDirectory()) return new RootFS(customDir);
+            if (customDir.isDirectory() && isValidRootDir(customDir)) return new RootFS(customDir);
         }
 
         File legacyDir = new File(context.getFilesDir(), "imagefs");
@@ -53,9 +53,25 @@ public class RootFS {
         return rootDir.isDirectory() && getRFSVersionFile().exists();
     }
 
+    public static boolean isValidRootDir(File rootDir) {
+        return rootDir != null && rootDir.isDirectory() &&
+            (new File(rootDir, "bin/bash").exists() ||
+             new File(rootDir, "etc/os-release").exists() ||
+             getRFSVersionFile(rootDir).exists());
+    }
+
     public int getVersion() {
         File rfsVersionFile = getRFSVersionFile();
-        return rfsVersionFile.exists() ? Integer.parseInt(FileUtils.readLines(rfsVersionFile).get(0)) : 0;
+        if (!rfsVersionFile.isFile()) return 0;
+        try {
+            java.util.ArrayList<String> lines = FileUtils.readLines(rfsVersionFile, true);
+            if (lines.isEmpty()) return 0;
+            return Integer.parseInt(lines.get(0).trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     public String getFormattedVersion() {
@@ -63,8 +79,12 @@ public class RootFS {
     }
 
     public void createRFSVersionFile(int version) {
-        getImageInfoDir().mkdirs();
-        File file = getRFSVersionFile();
+        createVersionFile(rootDir, version);
+    }
+
+    public static void createVersionFile(File rootDir, int version) {
+        getImageInfoDir(rootDir).mkdirs();
+        File file = getRFSVersionFile(rootDir);
         try {
             file.createNewFile();
             FileUtils.writeString(file, String.valueOf(version));
@@ -100,10 +120,18 @@ public class RootFS {
     }
 
     private File getImageInfoDir() {
-        return new File(rootDir, ".linuxx");
+        return getImageInfoDir(rootDir);
     }
 
     public File getRFSVersionFile() {
-        return new File(getImageInfoDir(), ".rfs_version");
+        return getRFSVersionFile(rootDir);
+    }
+
+    private static File getImageInfoDir(File rootDir) {
+        return new File(rootDir, ".linuxx");
+    }
+
+    public static File getRFSVersionFile(File rootDir) {
+        return new File(getImageInfoDir(rootDir), ".rfs_version");
     }
 }

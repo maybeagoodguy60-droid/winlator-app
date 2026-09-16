@@ -25,6 +25,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.winlator.container.Container;
@@ -130,7 +131,7 @@ public class ContainersFragment extends Fragment {
         final DownloadProgressDialog dialog = new DownloadProgressDialog(requireActivity());
         dialog.show(R.string.import_rootfs);
         new Thread(() -> {
-            File rootDir = RootFS.find(getContext()).getRootDir();
+            File rootDir = getImportRootDir();
             boolean success = RootFSInstaller.importFromUri(getContext(), uri, rootDir, (percent, path) -> {
                 requireActivity().runOnUiThread(() -> {
                     dialog.setProgress(percent);
@@ -147,6 +148,14 @@ public class ContainersFragment extends Fragment {
                 loadContainersList();
             });
         }).start();
+    }
+
+    private File getImportRootDir() {
+        String customPath = PreferenceManager.getDefaultSharedPreferences(requireContext()).getString("rootfs_path", "");
+        if (customPath != null && !customPath.isEmpty() && new File(customPath).isDirectory()) {
+            return new File(customPath);
+        }
+        return RootFS.find(requireContext()).getRootDir();
     }
 
     private class ContainersAdapter extends RecyclerView.Adapter<ContainersAdapter.ViewHolder> {

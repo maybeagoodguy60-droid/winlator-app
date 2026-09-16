@@ -1,13 +1,13 @@
 package com.winlator.xenvironment;
 
 import android.content.Context;
+import android.system.Os;
 
 import com.winlator.MainActivity;
 import com.winlator.R;
 import com.winlator.core.AppUtils;
 import com.winlator.core.DownloadProgressDialog;
 import com.winlator.core.FileUtils;
-import com.winlator.core.PreloaderDialog;
 import com.winlator.core.RootAccessHelper;
 
 import java.io.File;
@@ -16,9 +16,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.Executors;
+import java.util.zip.GZIPInputStream;
 
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.ArchiveInputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.commons.compress.compressors.xz.XZCompressorInputStream;
@@ -30,25 +32,30 @@ public abstract class RootFSInstaller {
     }
 
     public static final byte LATEST_VERSION = 1;
-    public static final String FILENAME = "rootfs.tar.gz";
+    public static final String FILENAME = "rootfs.tzst";
 
     public static void install(final MainActivity activity) {
         AppUtils.keepScreenOn(activity);
         RootFS rootFS = RootFS.find(activity);
         final File rootDir = rootFS.getRootDir();
 
+        final File rootfsFile = new File(activity.getFilesDir(), FILENAME);
+        final boolean hasRootfsFile = rootfsFile.exists();
+        final boolean hasAsset = hasAsset(activity, FILENAME);
+        if (!hasRootfsFile && !hasAsset) {
+            AppUtils.showToast(activity, R.string.unable_to_install_system_files);
+            return;
+        }
+
         final DownloadProgressDialog dialog = new DownloadProgressDialog(activity);
         dialog.show(R.string.installing_system_files);
         Executors.newSingleThreadExecutor().execute(() -> {
-            clearRootDir(rootDir);
+            if (hasRootfsFile || hasAsset) clearRootDir(rootDir);
 
-            File rootfsFile = new File(activity.getFilesDir(), FILENAME);
-            boolean success = false;
-
-            if (rootfsFile.exists()) {
+            boolean success;
+            if (hasRootfsFile) {
                 success = extractTarGz(rootfsFile, rootDir);
             } else {
-                // Try assets
                 success = extractFromAssets(activity, rootDir);
             }
 
@@ -65,7 +72,7 @@ public abstract class RootFSInstaller {
 
     public static void installIfNeeded(final MainActivity activity) {
         RootFS rootFS = RootFS.find(activity);
-        if (!rootFS.isValid() || rootFS.getVersion() < LATEST_VERSION) install(activity);
+        if (!rootFS.isValid()) install(activity);
     }
 
     public static boolean extractTarGz(File tarGzFile, File destDir) {
@@ -77,50 +84,86 @@ public abstract class RootFSInstaller {
     }
 
     public static boolean extractArchive(File archiveFile, File destDir, ProgressCallback callback) {
-        try {
-            long totalBytes = 0;
-            try (ArchiveInputStream ais = openArchive(archiveFile)) {
-                ArchiveEntry entry;
-                while ((entry = ais.getNextEntry()) != null) {
-                    totalBytes += entry.getSize();
-                }
+        long totalBytes = 0;
+        try (ArchiveInputStream ais = openArchive(archiveFile)) {
+            ArchiveEntry entry;
+            while ((entry = ais.getNextEntry()) != null) {
+                if (entry.getSize() > 0) totalBytes += entry.getSize();
             }
-
-            long currentBytes = 0;
-            try (ArchiveInputStream ais = openArchive(archiveFile)) {
-                ArchiveEntry entry;
-                byte[] buffer = new byte[8192];
-                int lastPercent = -1;
-
-                while ((entry = ais.getNextEntry()) != null) {
-                    File outFile = new File(destDir, entry.getName());
-
-                    if (entry.isDirectory()) {
-                        outFile.mkdirs();
-                    } else {
-                        outFile.getParentFile().mkdirs();
-                        try (FileOutputStream fos = new FileOutputStream(outFile)) {
-                            int len;
-                            while ((len = ais.read(buffer)) > 0) {
-                                fos.write(buffer, 0, len);
-                                currentBytes += len;
-                                if (callback != null && totalBytes > 0) {
-                                    int percent = (int)(currentBytes * 100 / totalBytes);
-                                    if (percent != lastPercent) {
-                                        lastPercent = percent;
-                                        callback.onProgress(percent, entry.getName());
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return true;
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
+
+        long currentBytes = 0;
+        int lastPercent = -1;
+        try (ArchiveInputStream ais = openArchive(archiveFile)) {
+            ArchiveEntry entry;
+            byte[] buffer = new byte[8192];
+
+            while ((entry = ais.getNextEntry()) != null) {
+                String entryName = sanitizeArchiveEntryName(entry.getName());
+                if (entryName == null) continue;
+                File outFile = new File(destDir, entryName);
+                if (!isWithinDir(destDir, outFile)) continue;
+
+                if (entry.isDirectory()) {
+                    if (outFile.mkdirs() || outFile.isDirectory()) {
+                        applyArchivePermissions(entry, outFile);
+                    }
+                    continue;
+                }
+
+                if (outFile.getParentFile() != null) outFile.getParentFile().mkdirs();
+
+                if (entry instanceof TarArchiveEntry) {
+                    TarArchiveEntry tarEntry = (TarArchiveEntry) entry;
+
+                    if (tarEntry.isSymbolicLink()) {
+                        try {
+                            Os.symlink(tarEntry.getLinkName(), outFile.getAbsolutePath());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        continue;
+                    }
+
+                    if (tarEntry.isLink()) {
+                        File linkTarget = resolveHardLinkTarget(destDir, tarEntry.getLinkName());
+                        try {
+                            if (linkTarget != null && linkTarget.isFile()) {
+                                Os.link(linkTarget.getAbsolutePath(), outFile.getAbsolutePath());
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        continue;
+                    }
+                }
+
+                try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                    int len;
+                    while ((len = ais.read(buffer)) > 0) {
+                        fos.write(buffer, 0, len);
+                        currentBytes += len;
+                        if (callback != null && totalBytes > 0) {
+                            int percent = (int) (currentBytes * 100 / totalBytes);
+                            if (percent != lastPercent) {
+                                lastPercent = percent;
+                                callback.onProgress(percent, entry.getName());
+                            }
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                applyArchivePermissions(entry, outFile);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
     }
 
     private static ArchiveInputStream openArchive(File archiveFile) throws IOException {
@@ -132,7 +175,7 @@ public abstract class RootFSInstaller {
         }
 
         if (name.endsWith(".tar.gz") || name.endsWith(".tgz") || isGzip(fis)) {
-            return new TarArchiveInputStream(new java.util.zip.GZIPInputStream(fis));
+            return new TarArchiveInputStream(new GZIPInputStream(fis));
         }
         if (name.endsWith(".tar.xz") || name.endsWith(".txz") || name.endsWith(".xz") || isXz(fis)) {
             return new TarArchiveInputStream(new XZCompressorInputStream(fis));
@@ -200,6 +243,53 @@ public abstract class RootFSInstaller {
             e.printStackTrace();
             return false;
         }
+    }
+
+    private static boolean hasAsset(Context context, String name) {
+        try (InputStream is = context.getAssets().open(name)) {
+            return is != null;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private static String sanitizeArchiveEntryName(String name) {
+        if (name == null) return null;
+        name = name.replace('\\', '/');
+        while (name.startsWith("/")) name = name.substring(1);
+        if (name.isEmpty()) return null;
+
+        String[] parts = name.split("/");
+        StringBuilder sb = new StringBuilder(name.length());
+        for (String part : parts) {
+            if (part.equals("..")) return null;
+            if (part.equals(".") || part.isEmpty()) continue;
+            if (sb.length() > 0) sb.append('/');
+            sb.append(part);
+        }
+        return sb.length() > 0 ? sb.toString() : null;
+    }
+
+    private static boolean isWithinDir(File dir, File file) {
+        String dirPath = dir.getAbsolutePath();
+        String filePath = file.getAbsolutePath();
+        return filePath.equals(dirPath) || filePath.startsWith(dirPath + File.separator);
+    }
+
+    private static File resolveHardLinkTarget(File destDir, String linkName) {
+        String sanitized = sanitizeArchiveEntryName(linkName);
+        if (sanitized == null) return null;
+        File target = new File(destDir, sanitized);
+        return isWithinDir(destDir, target) ? target : null;
+    }
+
+    private static void applyArchivePermissions(ArchiveEntry entry, File file) {
+        if (entry instanceof TarArchiveEntry) {
+            int mode = ((TarArchiveEntry) entry).getMode() & 07777;
+            if (mode != 0) FileUtils.chmod(file, mode);
+        }
+        if (!file.canRead()) file.setReadable(true, false);
+        if (!file.canWrite()) file.setWritable(true, false);
     }
 
     private static void setupHomeDirectory(File rootDir) {
@@ -274,7 +364,7 @@ public abstract class RootFSInstaller {
                 fos.write(buffer, 0, len);
                 total += len;
                 if (callback != null) {
-                    int percent = fileSize > 0 ? (int)Math.min(90, total * 90 / fileSize) : 0;
+                    int percent = fileSize > 0 ? (int) Math.min(90, total * 90 / fileSize) : 0;
                     callback.onProgress(percent, "Copying rootfs file...");
                 }
             }
@@ -288,8 +378,7 @@ public abstract class RootFSInstaller {
             tempFile.delete();
             if (success) {
                 setupHomeDirectory(targetRootDir);
-                RootFS rootFS = RootFS.find(context);
-                if (!rootFS.isValid()) rootFS.createRFSVersionFile(LATEST_VERSION);
+                RootFS.createVersionFile(targetRootDir, LATEST_VERSION);
             }
             return success;
         } catch (IOException e) {

@@ -276,12 +276,31 @@ public abstract class FileUtils {
     }
 
     public static String getFilePathFromUri(Uri uri) {
-        String path = null;
-        if (uri.getAuthority().equals("com.android.externalstorage.documents")) {
-            String[] parts = uri.getLastPathSegment().split(":");
-            if (parts[0].equalsIgnoreCase("primary")) path = Environment.getExternalStorageDirectory() + "/" + parts[1];
+        if (uri == null) return null;
+        if ("file".equals(uri.getScheme()) && uri.getPath() != null) {
+            return uri.getPath();
         }
-        return path;
+        if (!"com.android.externalstorage.documents".equals(uri.getAuthority())) {
+            return null;
+        }
+
+        String lastSegment = uri.getLastPathSegment();
+        if (lastSegment == null) return null;
+
+        int colonIndex = lastSegment.indexOf(':');
+        if (colonIndex < 0) return null;
+
+        String volume = lastSegment.substring(0, colonIndex);
+        String path = lastSegment.substring(colonIndex + 1);
+        if (volume.equalsIgnoreCase("primary")) {
+            return new File(Environment.getExternalStorageDirectory(), path).getAbsolutePath();
+        }
+
+        // Secondary storage volumes (SD-card, USB) are mounted under /storage/<volume>
+        if (!volume.isEmpty()) {
+            return new File(File.separator + "storage" + File.separator + volume, path).getAbsolutePath();
+        }
+        return null;
     }
 
     public static boolean contentEquals(File origin, File target) {
