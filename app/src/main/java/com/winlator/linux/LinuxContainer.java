@@ -23,6 +23,7 @@ public class LinuxContainer extends Container {
     private String desktopEnv = DEFAULT_DESKTOP_ENV;
     private String launchCommand = "";
     private String cpuGovernor = DEFAULT_CPU_GOVERNOR;
+    private String cpuAffinity = "";
     private int launchMode = LAUNCH_MODE_AUTO;
 
     public LinuxContainer(int id) {
@@ -78,6 +79,14 @@ public class LinuxContainer extends Container {
         this.cpuGovernor = cpuGovernor != null ? cpuGovernor : DEFAULT_CPU_GOVERNOR;
     }
 
+    public String getCpuAffinity() {
+        return cpuAffinity;
+    }
+
+    public void setCpuAffinity(String cpuAffinity) {
+        this.cpuAffinity = cpuAffinity != null ? cpuAffinity : "";
+    }
+
     @Override
     public void saveData() {
         try {
@@ -97,6 +106,7 @@ public class LinuxContainer extends Container {
             data.put("desktopEnv", desktopEnv);
             data.put("launchCommand", launchCommand);
             data.put("cpuGovernor", cpuGovernor);
+            data.put("cpuAffinity", cpuAffinity);
             data.put("launchMode", launchMode);
             data.put("extraData", getExtraData() != null ? getExtraData() : new JSONObject());
             FileUtils.writeString(getConfigFile(), data.toString());
@@ -122,6 +132,7 @@ public class LinuxContainer extends Container {
                 case "desktopEnv": setDesktopEnv(data.getString(key)); break;
                 case "launchCommand": setLaunchCommand(data.getString(key)); break;
                 case "cpuGovernor": setCpuGovernor(data.getString(key)); break;
+                case "cpuAffinity": setCpuAffinity(data.getString(key)); break;
                 case "launchMode": setLaunchMode(data.getInt(key)); break;
                 case "extraData": setExtraData(data.getJSONObject(key)); break;
             }

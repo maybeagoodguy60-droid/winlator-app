@@ -9,12 +9,15 @@ import com.winlator.core.ProcessHelper;
 import com.winlator.linux.LinuxContainer;
 import com.winlator.linux.ProotLauncher;
 import com.winlator.xconnector.UnixSocketConfig;
-import com.winlator.xconnector.UnixSocketConfig;
 import com.winlator.xenvironment.EnvironmentComponent;
 import com.winlator.xenvironment.RootFS;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Scanner;
 
 public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private String guestExecutable;
@@ -23,12 +26,18 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private Callback<Integer> terminationCallback;
     private Callback<String> startupFailureCallback;
     private static final Object lock = new Object();
+    private final HashMap<File, String> originalGovernors = new HashMap<>();
 
     private String cpuGovernor;
+    private int cpuAffinityMask = 0;
     private int launchMode = LinuxContainer.LAUNCH_MODE_AUTO;
 
     public void setCpuGovernor(String cpuGovernor) {
         this.cpuGovernor = cpuGovernor;
+    }
+
+    public void setCpuAffinityMask(int cpuAffinityMask) {
+        this.cpuAffinityMask = cpuAffinityMask;
     }
 
     public void setLaunchMode(int launchMode) {
@@ -50,6 +59,26 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
             if (pid == -1 && startupFailureCallback != null) {
                 startupFailureCallback.call("Could not start the guest process. Check the launch command and that the proot binary is present.");
             }
+            else if (pid != -1) {
+                applyCpuAffinity(pid);
+            }
+        }
+    }
+
+    private void applyCpuAffinity(int targetPid) {
+        if (cpuAffinityMask == 0 || targetPid <= 0) return;
+        try {
+            ProcessBuilder pb = new ProcessBuilder("su", "-c", "taskset", "-p", Integer.toHexString(cpuAffinityMask), String.valueOf(targetPid));
+            pb.redirectErrorStream(true);
+            pb.start();
+        } catch (Exception e) {}
+    }
+
+    private static String readFile(File file) {
+        try (Scanner scanner = new Scanner(file)) {
+            return scanner.hasNextLine() ? scanner.nextLine().trim() : "";
+        } catch (Exception e) {
+            return "";
         }
     }
 
@@ -61,15 +90,30 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
                 for (File policyDir : policyDirs) {
                     File governorFile = new File(policyDir, "scaling_governor");
                     if (governorFile.exists()) {
-                        java.io.FileWriter fw = new java.io.FileWriter(governorFile);
-                        fw.write(governor);
-                        fw.close();
+                        String original = readFile(governorFile);
+                        if (!governor.equals(original)) {
+                            originalGovernors.put(governorFile, original);
+                            java.io.FileWriter fw = new java.io.FileWriter(governorFile);
+                            fw.write(governor);
+                            fw.close();
+                        }
                     }
                 }
             }
         } catch (Exception e) {
             // Governor write may fail without root - silently ignore
         }
+    }
+
+    private void restoreCpuGovernors() {
+        for (Map.Entry<File, String> entry : originalGovernors.entrySet()) {
+            try {
+                FileWriter fw = new FileWriter(entry.getKey());
+                fw.write(entry.getValue());
+                fw.close();
+            } catch (Exception e) {}
+        }
+        originalGovernors.clear();
     }
 
     @Override
@@ -79,6 +123,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
                 Process.killProcess(pid);
                 pid = -1;
             }
+            restoreCpuGovernors();
         }
     }
 

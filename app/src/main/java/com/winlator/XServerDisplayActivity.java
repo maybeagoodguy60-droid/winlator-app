@@ -413,6 +413,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                 desktopEnv = linuxContainer.getDesktopEnv();
                 launchCommand = linuxContainer.getLaunchCommand();
                 guestProgramLauncherComponent.setCpuGovernor(linuxContainer.getCpuGovernor());
+                guestProgramLauncherComponent.setCpuAffinityMask(ProcessHelper.getAffinityMask(linuxContainer.getCpuAffinity()));
                 guestProgramLauncherComponent.setLaunchMode(linuxContainer.getLaunchMode());
             }
             else {
