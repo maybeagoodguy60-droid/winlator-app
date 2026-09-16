@@ -22,6 +22,10 @@ import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 
 public abstract class RootFSInstaller {
+    public interface ProgressCallback {
+        void onProgress(int percent, String currentPath);
+    }
+
     public static final byte LATEST_VERSION = 1;
     public static final String FILENAME = "rootfs.tar.gz";
 
@@ -62,33 +66,53 @@ public abstract class RootFSInstaller {
     }
 
     public static boolean extractTarGz(File tarGzFile, File destDir) {
+        return extractTarGz(tarGzFile, destDir, null);
+    }
+
+    public static boolean extractTarGz(File tarGzFile, File destDir, ProgressCallback callback) {
         try {
-            FileInputStream fis = new FileInputStream(tarGzFile);
-            GZIPInputStream gis = new GZIPInputStream(fis);
-            TarArchiveInputStream tis = new TarArchiveInputStream(gis);
-
-            TarArchiveEntry entry;
-            byte[] buffer = new byte[8192];
-
-            while ((entry = tis.getNextTarEntry()) != null) {
-                File outFile = new File(destDir, entry.getName());
-
-                if (entry.isDirectory()) {
-                    outFile.mkdirs();
-                } else {
-                    outFile.getParentFile().mkdirs();
-                    FileOutputStream fos = new FileOutputStream(outFile);
-                    int len;
-                    while ((len = tis.read(buffer)) > 0) {
-                        fos.write(buffer, 0, len);
-                    }
-                    fos.close();
+            long totalBytes = 0;
+            try (FileInputStream fis = new FileInputStream(tarGzFile);
+                 GZIPInputStream gis = new GZIPInputStream(fis);
+                 TarArchiveInputStream tis = new TarArchiveInputStream(gis)) {
+                TarArchiveEntry entry;
+                while ((entry = tis.getNextTarEntry()) != null) {
+                    totalBytes += entry.getSize();
                 }
             }
 
-            tis.close();
-            gis.close();
-            fis.close();
+            long currentBytes = 0;
+            try (FileInputStream fis = new FileInputStream(tarGzFile);
+                 GZIPInputStream gis = new GZIPInputStream(fis);
+                 TarArchiveInputStream tis = new TarArchiveInputStream(gis)) {
+                TarArchiveEntry entry;
+                byte[] buffer = new byte[8192];
+                int lastPercent = -1;
+
+                while ((entry = tis.getNextTarEntry()) != null) {
+                    File outFile = new File(destDir, entry.getName());
+
+                    if (entry.isDirectory()) {
+                        outFile.mkdirs();
+                    } else {
+                        outFile.getParentFile().mkdirs();
+                        try (FileOutputStream fos = new FileOutputStream(outFile)) {
+                            int len;
+                            while ((len = tis.read(buffer)) > 0) {
+                                fos.write(buffer, 0, len);
+                                currentBytes += len;
+                                if (callback != null && totalBytes > 0) {
+                                    int percent = (int)(currentBytes * 100 / totalBytes);
+                                    if (percent != lastPercent) {
+                                        lastPercent = percent;
+                                        callback.onProgress(percent, entry.getName());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             return true;
         } catch (IOException e) {
             e.printStackTrace();
@@ -163,6 +187,10 @@ public abstract class RootFSInstaller {
     }
 
     public static boolean importFromUri(final Context context, final android.net.Uri uri, final File targetRootDir) {
+        return importFromUri(context, uri, targetRootDir, null);
+    }
+
+    public static boolean importFromUri(final Context context, final android.net.Uri uri, final File targetRootDir, final ProgressCallback callback) {
         try {
             InputStream is = context.getContentResolver().openInputStream(uri);
             if (is == null) return false;
@@ -171,17 +199,28 @@ public abstract class RootFSInstaller {
             FileOutputStream fos = new FileOutputStream(tempFile);
             byte[] buffer = new byte[8192];
             int len;
+            long total = 0;
+            if (callback != null) callback.onProgress(0, "Copying rootfs file...");
             while ((len = is.read(buffer)) > 0) {
                 fos.write(buffer, 0, len);
+                total += len;
+                if (callback != null) {
+                    int percent = (int)Math.min(90, total / 1024 / 1024);
+                    callback.onProgress(Math.min(percent, 90), "Copying rootfs file...");
+                }
             }
             fos.close();
             is.close();
 
             clearRootDir(targetRootDir);
-            boolean success = extractTarGz(tempFile, targetRootDir);
+            boolean success = extractTarGz(tempFile, targetRootDir, (p, path) -> {
+                if (callback != null) callback.onProgress(90 + p / 10, path);
+            });
             tempFile.delete();
             if (success) {
                 setupHomeDirectory(targetRootDir);
+                RootFS rootFS = RootFS.find(context);
+                if (!rootFS.isValid()) rootFS.createRFSVersionFile(LATEST_VERSION);
             }
             return success;
         } catch (IOException e) {

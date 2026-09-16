@@ -31,6 +31,7 @@ import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.contentdialog.ContentDialog;
 import com.winlator.contentdialog.StorageInfoDialog;
+import com.winlator.core.DownloadProgressDialog;
 import com.winlator.core.PreloaderDialog;
 import com.winlator.linux.LaunchValidator;
 import com.winlator.linux.LinuxContainer;
@@ -126,13 +127,18 @@ public class ContainersFragment extends Fragment {
     }
 
     private void importRootfs(final android.net.Uri uri) {
-        Toast.makeText(getContext(), R.string.rootfs_importing, Toast.LENGTH_SHORT).show();
-        preloaderDialog.show(R.string.rootfs_importing);
+        final DownloadProgressDialog dialog = new DownloadProgressDialog(requireActivity());
+        dialog.show(R.string.import_rootfs);
         new Thread(() -> {
             File rootDir = new File(getContext().getFilesDir(), "rootfs");
-            boolean success = RootFSInstaller.importFromUri(getContext(), uri, rootDir);
+            boolean success = RootFSInstaller.importFromUri(getContext(), uri, rootDir, (percent, path) -> {
+                requireActivity().runOnUiThread(() -> {
+                    dialog.setProgress(percent);
+                    dialog.setDetail(path);
+                });
+            });
             requireActivity().runOnUiThread(() -> {
-                preloaderDialog.close();
+                dialog.close();
                 if (success) {
                     Toast.makeText(getContext(), R.string.rootfs_validate_ok, Toast.LENGTH_SHORT).show();
                 } else {

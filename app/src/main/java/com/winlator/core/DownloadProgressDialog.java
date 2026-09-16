@@ -61,6 +61,11 @@ public class DownloadProgressDialog {
         dialog.show();
     }
 
+    public void setDetail(final String detail) {
+        if (dialog == null) return;
+        ((TextView)dialog.findViewById(R.id.TextView)).setText(detail != null ? detail : "");
+    }
+
     public void setProgress(int progress) {
         if (dialog == null) return;
         progress = Mathf.clamp(progress, 0, 100);
