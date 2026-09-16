@@ -79,7 +79,14 @@ public class ContainersFragment extends Fragment {
     private void loadContainersList() {
         ArrayList<Container> containers = manager.getContainers();
         recyclerView.setAdapter(new ContainersAdapter(containers));
-        if (containers.isEmpty()) emptyTextView.setVisibility(View.VISIBLE);
+        if (containers.isEmpty()) {
+            emptyTextView.setVisibility(View.VISIBLE);
+            if (RootFS.find(getContext()).isValid()) {
+                emptyTextView.setText(R.string.containers_empty_hint);
+            } else {
+                emptyTextView.setText(R.string.containers_empty_no_rootfs);
+            }
+        }
     }
 
     @Override

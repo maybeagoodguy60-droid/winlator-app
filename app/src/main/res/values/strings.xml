@@ -418,7 +418,7 @@
     <string name="rootfs_validate_fail">No valid rootfs found at this path</string>
     <string name="rootfs_select_hint">Select an extracted rootfs directory or enter path manually</string>
     <string name="rootfs_importing">Importing rootfs...</string>
-    <string name="rootfs_missing_gl_libs">Rootfs missing graphics libs: %1$s</string>
+    <string name="rootfs_missing_gl_libs">%1$d libs missing: %2$s</string>
     <string name="launch_mode">Launch Mode</string>
     <string name="launch_mode_auto">Auto</string>
     <string name="launch_mode_proot">Force Proot</string>
@@ -434,4 +434,6 @@
     <string name="launch_error_proot_not_exec">Proot binary is not executable: %1$s</string>
     <string name="launch_error_tmp_not_writable">The rootfs /tmp directory could not be created at: %1$s</string>
     <string name="launch_error_guest_stopped">The guest stopped before its desktop loaded (exit %1$d).\nCheck the rootfs, launch command, and that graphics/audio libraries are installed inside it.</string>
+    <string name="containers_empty_hint">No containers yet. Tap + to create one.\n\nTip: Use \"Existing path\" for a rootfs from Termux or proot-distro, or \"Import\" to load a .tar.gz.</string>
+    <string name="containers_empty_no_rootfs">No rootfs found.\n\nImport a rootfs (e.g. from proot-distro or a Debian .tar.gz) to get started.</string>
 </resources>

@@ -166,6 +166,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         envVars.put("DISPLAY", ":0");
         envVars.put("PATH", "/usr/local/bin:/usr/bin:/bin");
         envVars.put("LD_LIBRARY_PATH", "/usr/lib");
+        envVars.put("TZ", java.util.TimeZone.getDefault().getID());
         
         envVars.put("ANDROID_SYSVSHM_SERVER", UnixSocketConfig.SYSVSHM_SERVER_PATH);
 

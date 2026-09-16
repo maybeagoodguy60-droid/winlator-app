@@ -533,14 +533,17 @@ public class ContainerDetailFragment extends Fragment {
 
     private void validateGLLibs(File rootDir) {
         StringBuilder missing = new StringBuilder();
-        for (String lib : new String[]{"usr/lib/libX11.so.6", "usr/lib/libglapi.so.0", "usr/lib/libdrm.so.2"}) {
+        int count = 0;
+        for (String lib : new String[]{"usr/lib/libX11.so.6", "usr/lib/libglapi.so.0", "usr/lib/libdrm.so.2",
+                                       "usr/lib/libasound.so.2", "usr/lib/libXrandr.so.2"}) {
             if (!new File(rootDir, lib).exists()) {
                 if (missing.length() > 0) missing.append(", ");
                 missing.append(lib.substring(lib.lastIndexOf('/') + 1));
+                count++;
             }
         }
-        if (missing.length() > 0) {
-            tvRootfsStatus.setText(getString(R.string.rootfs_missing_gl_libs, missing.toString()));
+        if (count > 0) {
+            tvRootfsStatus.setText(getString(R.string.rootfs_missing_gl_libs, count, missing.toString()));
             tvRootfsStatus.setTextColor(0xFFFFC107);
         }
     }
