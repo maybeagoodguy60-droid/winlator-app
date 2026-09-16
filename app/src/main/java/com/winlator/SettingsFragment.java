@@ -45,6 +45,7 @@ import com.winlator.core.GeneralComponents;
 import com.winlator.core.LocaleHelper;
 import com.winlator.core.PreloaderDialog;
 
+import com.winlator.inputcontrols.ExternalController;
 import com.winlator.services.NotificationUtils;
 import com.winlator.widget.ColorPickerView;
 import com.winlator.widget.LogView;
@@ -79,6 +80,12 @@ public class SettingsFragment extends Fragment {
         final Context context = getContext();
         preferences = PreferenceManager.getDefaultSharedPreferences(context);
 
+        loadCursorControls(view);
+        loadGamepadControls(view);
+        loadGamepadPlayerConfigs(view);
+        loadLanguageAndThemeControls(view);
+        loadSystemCheckBoxes(view);
+
         final Spinner sSoundFont = view.findViewById(R.id.SSoundFont);
         String soundfont = preferences.getString("soundfont", null);
         GeneralComponents.initViews(GeneralComponents.Type.SOUNDFONT, view.findViewById(R.id.SoundFontToolbox), sSoundFont, soundfont, DefaultVersion.SOUNDFONT);
@@ -87,7 +94,92 @@ public class SettingsFragment extends Fragment {
         final Spinner sMIDIInputDevice = view.findViewById(R.id.SMIDIInputDevice);
         String midiInputDevice = preferences.getString("midi_input_device", "auto");
         loadMIDIInputDeviceSpinner(sMIDIInputDevice, midiInputDevice);
+
+        view.findViewById(R.id.BTConfirm).setOnClickListener((v) -> onConfirmClicked(view));
         return view;
+    }
+    private void loadCursorControls(View view) {
+        SeekBar sbCursorSpeed = view.findViewById(R.id.SBCursorSpeed);
+        sbCursorSpeed.setValue(preferences.getFloat("cursor_speed", 1.0f) * 10f);
+
+        SeekBar sbCursorSize = view.findViewById(R.id.SBCursorSize);
+        sbCursorSize.setValue(preferences.getFloat("cursor_scale", 1.0f) * 100f);
+
+        ColorPickerView cpvCursorColor = view.findViewById(R.id.CPVCursorColor);
+        cpvCursorColor.setColor(preferences.getInt("cursor_color", 0xffffff));
+
+        ((android.widget.CheckBox)view.findViewById(R.id.CBMoveCursorToTouchpoint)).setChecked(preferences.getBoolean("move_cursor_to_touchpoint", false));
+        ((android.widget.CheckBox)view.findViewById(R.id.CBCapturePointerOnExternalMouse)).setChecked(preferences.getBoolean("capture_pointer_on_external_mouse", true));
+    }
+    private void loadGamepadControls(final View view) {
+        final Spinner sGamepadModel = view.findViewById(R.id.SGamepadModel);
+        ArrayList<String> items = new ArrayList<>();
+        items.add(getContext().getString(R.string.auto));
+        for (ExternalController controller : ExternalController.getControllers()) items.add(controller.getName());
+
+        String selectedName = preferences.getString("gamepad_model", "");
+        if (!selectedName.isEmpty() && !items.contains(selectedName)) items.add(selectedName);
+        sGamepadModel.setAdapter(new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, items));
+        AppUtils.setSpinnerSelectionFromValue(sGamepadModel, selectedName);
+    }
+    private void loadLanguageAndThemeControls(View view) {
+        final Spinner sLanguage = view.findViewById(R.id.SLanguage);
+        sLanguage.setAdapter(new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, getResources().getStringArray(R.array.language_entries)));
+        sLanguage.setSelection(LocaleHelper.getLocaleIndex(getContext()), false);
+
+        RadioGroup rgAppTheme = view.findViewById(R.id.RGAppTheme);
+        rgAppTheme.check(preferences.getInt("app_theme", APP_THEME_DARK) == APP_THEME_LIGHT ? R.id.RBLight : R.id.RBDark);
+    }
+    private void loadSystemCheckBoxes(View view) {
+        ((android.widget.CheckBox)view.findViewById(R.id.CBUseAndroidClipboardOnWine)).setChecked(preferences.getBoolean("use_winlator_clipboard", false));
+        ((android.widget.CheckBox)view.findViewById(R.id.CBEnableBackgroundProtection)).setChecked(preferences.getBoolean("enable_background_protection", false));
+        ((android.widget.CheckBox)view.findViewById(R.id.CBEnableBackgroundWakelock)).setChecked(preferences.getBoolean("enable_background_wakelock", false));
+        ((android.widget.CheckBox)view.findViewById(R.id.CBSaveMemOnRunFromSteam)).setChecked(preferences.getBoolean("save_mem_on_run_from_steam", false));
+    }
+    private void onConfirmClicked(View view) {
+        int oldTheme = preferences.getInt("app_theme", APP_THEME_DARK);
+        int oldLanguageIndex = preferences.getInt("lc_index", -1);
+        SharedPreferences.Editor editor = preferences.edit();
+
+        SeekBar sbCursorSpeed = view.findViewById(R.id.SBCursorSpeed);
+        editor.putFloat("cursor_speed", sbCursorSpeed.getValue() / 10.0f);
+
+        SeekBar sbCursorSize = view.findViewById(R.id.SBCursorSize);
+        editor.putFloat("cursor_scale", sbCursorSize.getValue() / 100.0f);
+
+        ColorPickerView cpvCursorColor = view.findViewById(R.id.CPVCursorColor);
+        editor.putInt("cursor_color", cpvCursorColor.getColor());
+
+        editor.putBoolean("move_cursor_to_touchpoint", ((android.widget.CheckBox)view.findViewById(R.id.CBMoveCursorToTouchpoint)).isChecked());
+        editor.putBoolean("capture_pointer_on_external_mouse", ((android.widget.CheckBox)view.findViewById(R.id.CBCapturePointerOnExternalMouse)).isChecked());
+
+        Spinner sGamepadModel = view.findViewById(R.id.SGamepadModel);
+        String gamepadModel = (sGamepadModel.getSelectedItemPosition() > 0 ? sGamepadModel.getSelectedItem().toString() : "");
+        if (!gamepadModel.isEmpty()) editor.putString("gamepad_model", gamepadModel);
+        else editor.remove("gamepad_model");
+
+        putGamepadPlayerConfigs(view, editor);
+
+        Spinner sLanguage = view.findViewById(R.id.SLanguage);
+        editor.putInt("lc_index", sLanguage.getSelectedItemPosition());
+
+        RadioGroup rgAppTheme = view.findViewById(R.id.RGAppTheme);
+        editor.putInt("app_theme", rgAppTheme.getCheckedRadioButtonId() == R.id.RBLight ? APP_THEME_LIGHT : APP_THEME_DARK);
+
+        editor.putBoolean("use_winlator_clipboard", ((android.widget.CheckBox)view.findViewById(R.id.CBUseAndroidClipboardOnWine)).isChecked());
+        editor.putBoolean("enable_background_protection", ((android.widget.CheckBox)view.findViewById(R.id.CBEnableBackgroundProtection)).isChecked());
+        editor.putBoolean("enable_background_wakelock", ((android.widget.CheckBox)view.findViewById(R.id.CBEnableBackgroundWakelock)).isChecked());
+        editor.putBoolean("save_mem_on_run_from_steam", ((android.widget.CheckBox)view.findViewById(R.id.CBSaveMemOnRunFromSteam)).isChecked());
+
+        editor.apply();
+        Toast toast = Toast.makeText(getContext(), R.string.settings_saved, Toast.LENGTH_SHORT);
+        toast.show();
+
+        int newLanguageIndex = preferences.getInt("lc_index", oldLanguageIndex);
+        int newTheme = preferences.getInt("app_theme", oldTheme);
+        if (newLanguageIndex != oldLanguageIndex || newTheme != oldTheme) {
+            AppUtils.restartApplication(getContext());
+        }
     }
     private void loadMIDIInputDeviceSpinner(final Spinner sMIDIInputDevice, final String selectedValue) {
         Context context = getContext();

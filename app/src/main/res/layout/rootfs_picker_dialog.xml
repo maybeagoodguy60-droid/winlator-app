@@ -3,36 +3,52 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="16dp">
+    android:padding="8dp">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/select_rootfs_source"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="16dp" />
+        android:text="@string/rootfs_source_hint"
+        android:textSize="13sp"
+        android:textColor="?attr/colorSecondaryText"
+        android:layout_marginBottom="12dp" />
 
-    <com.google.android.material.button.MaterialButton
+    <Button
         android:id="@+id/BTDownloadFromRepo"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/ButtonPositive"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/download_from_repo"
-        android:layout_marginBottom="8dp" />
+        android:text="@string/download_from_repo" />
 
-    <com.google.android.material.button.MaterialButton
+    <Button
         android:id="@+id/BTImportFromFile"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/ButtonPositive"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/import_from_file"
+        android:layout_marginTop="8dp" />
+
+    <View style="@style/FieldSeparator" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/use_existing_path"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimaryVariant"
         android:layout_marginBottom="8dp" />
 
-    <com.google.android.material.button.MaterialButton
+    <EditText
+        android:id="@+id/ETRootfsPath"
+        style="@style/EditText"
+        android:hint="@string/rootfs_path" />
+
+    <Button
         android:id="@+id/BTUseExistingPath"
-        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        style="@style/ButtonNeutral"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/use_existing_path" />
+        android:text="@string/use_existing_path"
+        android:layout_marginTop="8dp" />
 </LinearLayout>

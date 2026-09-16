@@ -3,6 +3,7 @@ package com.winlator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -17,6 +18,8 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,11 +33,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.winlator.container.Container;
 import com.winlator.container.ContainerManager;
 import com.winlator.contentdialog.ContentDialog;
+import com.winlator.contentdialog.RootfsPickerDialog;
 import com.winlator.contentdialog.StorageInfoDialog;
+import com.winlator.core.DownloadProgressDialog;
 import com.winlator.core.PreloaderDialog;
 import com.winlator.linux.LaunchValidator;
 import com.winlator.linux.LinuxContainer;
+import com.winlator.linux.RootfsDownloader;
 import com.winlator.xenvironment.RootFS;
+import com.winlator.xenvironment.RootFSInstaller;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -45,6 +52,7 @@ public class ContainersFragment extends Fragment {
     private TextView emptyTextView;
     private ContainerManager manager;
     private PreloaderDialog preloaderDialog;
+    private ActivityResultLauncher<Intent> importFileLauncher;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -57,6 +65,11 @@ public class ContainersFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         manager = new ContainerManager(getContext());
+        importFileLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null && result.getData().getData() != null) {
+                importRootfs(result.getData().getData());
+            }
+        });
         loadContainersList();
         ((AppCompatActivity)getActivity()).getSupportActionBar().setTitle(R.string.containers);
     }
@@ -97,15 +110,114 @@ public class ContainersFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem menuItem) {
         if (menuItem.getItemId() == R.id.menu_item_add) {
-            if (!RootFS.find(getContext()).isValid()) return false;
-            FragmentManager fragmentManager = getParentFragmentManager();
-            fragmentManager.beginTransaction()
-                .addToBackStack(null)
-                .replace(R.id.FLFragmentContainer, new ContainerDetailFragment())
-                .commit();
+            showRootfsPickerOrCreate();
             return true;
         }
         else return super.onOptionsItemSelected(menuItem);
+    }
+
+    private void showRootfsPickerOrCreate() {
+        if (RootFS.find(getContext()).isValid()) {
+            openNewContainer("");
+            return;
+        }
+        RootfsPickerDialog.show(getContext(), new RootfsPickerDialog.Callback() {
+            @Override
+            public void onDownload() {
+                downloadRootfs();
+            }
+
+            @Override
+            public void onImportFromFile() {
+                Intent pickerIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                pickerIntent.setType("application/gzip");
+                pickerIntent.addCategory(Intent.CATEGORY_OPENABLE);
+                importFileLauncher.launch(pickerIntent);
+            }
+
+            @Override
+            public void onUseExistingPath(String path) {
+                useExistingRootfs(path);
+            }
+        });
+    }
+
+    private void openNewContainer(String rootfsPath) {
+        openNewContainer();
+    }
+
+    private void useExistingRootfs(String path) {
+        File rootDir = new File(path);
+        if (!LaunchValidator.hasRootfs(rootDir)) {
+            Toast.makeText(getContext(), R.string.rootfs_validate_fail, Toast.LENGTH_LONG).show();
+            return;
+        }
+        Toast.makeText(getContext(), R.string.rootfs_ready, Toast.LENGTH_SHORT).show();
+        openNewContainer(rootDir.getPath());
+    }
+
+    private void importRootfs(Uri uri) {
+        final Activity activity = getActivity();
+        if (activity == null) return;
+        preloaderDialog.show(R.string.rootfs_importing);
+        final File rootDir = RootFS.find(activity).getRootDir();
+        new Thread(() -> {
+            boolean success = RootFSInstaller.importFromUri(activity, uri, rootDir);
+            activity.runOnUiThread(() -> {
+                preloaderDialog.close();
+                if (success) {
+                    RootFS.find(activity).createRFSVersionFile(0);
+                    Toast.makeText(activity, R.string.rootfs_installed, Toast.LENGTH_LONG).show();
+                    loadContainersList();
+                    openNewContainer(rootDir.getPath());
+                } else {
+                    Toast.makeText(activity, R.string.rootfs_import_failed, Toast.LENGTH_LONG).show();
+                }
+            });
+        }).start();
+    }
+
+    private void downloadRootfs() {
+        final Activity activity = getActivity();
+        if (activity == null) return;
+        final DownloadProgressDialog progressDialog = new DownloadProgressDialog(activity);
+        progressDialog.show(R.string.downloading_rootfs);
+        RootfsDownloader.downloadRootfs(activity, "debian", activity.getCacheDir().getAbsolutePath(), new RootfsDownloader.Callback() {
+            @Override
+            public void onProgress(int progress) {
+                progressDialog.setProgress(progress);
+            }
+
+            @Override
+            public void onComplete(boolean success, String message) {
+                activity.runOnUiThread(() -> {
+                    if (!success) {
+                        progressDialog.close();
+                        Toast.makeText(activity, getString(R.string.download_failed, message), Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    extractDownloadedRootfs(activity, progressDialog, new File(message));
+                });
+            }
+        });
+    }
+
+    private void extractDownloadedRootfs(Activity activity, DownloadProgressDialog progressDialog, File tarGzFile) {
+        final File rootDir = RootFS.find(activity).getRootDir();
+        new Thread(() -> {
+            boolean success = RootFSInstaller.extractTarGz(tarGzFile, rootDir);
+            activity.runOnUiThread(() -> {
+                progressDialog.close();
+                if (success) {
+                    RootFS.find(activity).createRFSVersionFile(0);
+                    Toast.makeText(activity, R.string.rootfs_installed, Toast.LENGTH_LONG).show();
+                    loadContainersList();
+                    openNewContainer(rootDir.getPath());
+                } else {
+                    Toast.makeText(activity, R.string.rootfs_import_failed, Toast.LENGTH_LONG).show();
+                }
+            });
+        }).start();
     }
 
     private class ContainersAdapter extends RecyclerView.Adapter<ContainersAdapter.ViewHolder> {
