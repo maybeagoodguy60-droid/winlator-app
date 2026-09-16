@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#1A1A2E"
+    android:background="?attr/colorPrimarySurface"
     android:fillViewport="true">
 
     <LinearLayout
@@ -15,9 +15,9 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Linux X"
+            android:text="@string/app_name"
             android:textSize="32sp"
-            android:textColor="#FFFFFF"
+            android:textColor="?attr/colorPrimaryText"
             android:textStyle="bold"
             android:layout_marginTop="32dp" />
 
@@ -26,16 +26,16 @@
             android:layout_height="wrap_content"
             android:text="ARM64 Linux Desktop for Android"
             android:textSize="14sp"
-            android:textColor="#B0B0B0"
+            android:textColor="?attr/colorSecondaryText"
             android:layout_marginTop="8dp"
             android:layout_marginBottom="24dp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Capabilities"
+            android:text="@string/rootfs_type"
             android:textSize="16sp"
-            android:textColor="#FFFFFF"
+            android:textColor="?attr/colorPrimaryText"
             android:textStyle="bold"
             android:layout_marginBottom="12dp" />
 
@@ -48,34 +48,36 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#333333"
+            android:background="?attr/colorSecondaryText"
             android:layout_marginTop="20dp"
-            android:layout_marginBottom="20dp" />
+            android:layout_marginBottom="20dp"
+            android:alpha="0.2" />
 
         <TextView
             android:id="@+id/rootStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="14sp"
+            android:textColor="?attr/colorSecondaryText"
             android:layout_marginBottom="12dp" />
 
         <Button
             android:id="@+id/btnGrantRoot"
             android:layout_width="match_parent"
             android:layout_height="48dp"
-            android:text="Grant Root Access (Optional)"
-            android:textColor="#FFFFFF"
-            android:background="#333355"
+            android:text="@string/rootfs_browse"
+            android:textColor="?attr/colorPrimaryText"
+            android:background="?attr/colorPrimaryVariant"
             android:layout_marginBottom="12dp" />
 
         <Button
             android:id="@+id/btnContinue"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:text="Continue"
-            android:textColor="#FFFFFF"
+            android:text="@string/containers"
+            android:textColor="?attr/colorPrimaryText"
             android:textSize="16sp"
-            android:background="#4444AA" />
+            android:background="?attr/colorAccent" />
 
     </LinearLayout>
 </ScrollView>

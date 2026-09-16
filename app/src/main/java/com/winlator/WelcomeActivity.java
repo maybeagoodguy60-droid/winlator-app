@@ -2,6 +2,8 @@ package com.winlator;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.util.TypedValue;
+import android.view.View;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -15,11 +17,7 @@ public class WelcomeActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        try {
-            FileLogger.start(getApplicationContext());
-        }
-        catch (Throwable ignored) {
-        }
+        try { FileLogger.start(getApplicationContext()); } catch (Throwable ignored) {}
         setContentView(R.layout.activity_welcome);
 
         LinearLayout capabilitiesList = findViewById(R.id.capabilitiesList);
@@ -27,7 +25,7 @@ public class WelcomeActivity extends Activity {
         Button btnGrantRoot = findViewById(R.id.btnGrantRoot);
         TextView rootStatus = findViewById(R.id.rootStatus);
 
-        addCapability(capabilitiesList, "ARM64 Linux Desktop", true, "Debian, Alpine, Arch, Fedora & more");
+        addCapability(capabilitiesList, getString(R.string.rootfs_type), true, "Debian, Alpine, Arch, Fedora & more");
         addCapability(capabilitiesList, "GPU Acceleration (VirGL)", true, "Hardware-accelerated rendering");
         addCapability(capabilitiesList, "Audio (ALSA)", true, "Native Linux audio output");
         addCapability(capabilitiesList, "Input Controls", true, "Gamepad, keyboard, touch");
@@ -50,7 +48,7 @@ public class WelcomeActivity extends Activity {
             addCapability(capabilitiesList, "Chroot Containers", false, "Requires root access");
         } else {
             rootStatus.setText("Root: Not detected (not required)");
-            rootStatus.setTextColor(0xFF9E9E9E);
+            rootStatus.setTextColor(resolveAttrColor(com.google.android.material.R.attr.colorSecondaryText));
             btnGrantRoot.setVisibility(View.GONE);
             addCapability(capabilitiesList, "Proot Containers", true, "Full Linux without root");
             addCapability(capabilitiesList, "Chroot Containers", false, "Requires rooted device");
@@ -80,6 +78,12 @@ public class WelcomeActivity extends Activity {
         });
     }
 
+    private int resolveAttrColor(int attrRes) {
+        TypedValue tv = new TypedValue();
+        getTheme().resolveAttribute(attrRes, tv, true);
+        return tv.data;
+    }
+
     private void addCapability(LinearLayout container, String name, boolean available, String detail) {
         View view = getLayoutInflater().inflate(R.layout.item_capability, container, false);
         TextView tvName = view.findViewById(R.id.capabilityName);
@@ -88,7 +92,9 @@ public class WelcomeActivity extends Activity {
 
         tvName.setText(name);
         tvDetail.setText(detail);
-        statusDot.setBackgroundColor(available ? 0xFF4CAF50 : 0xFF9E9E9E);
+        int green = 0xFF4CAF50;
+        int unavailable = resolveAttrColor(com.google.android.material.R.attr.colorSecondaryText);
+        statusDot.setBackgroundColor(available ? green : unavailable);
         tvName.setAlpha(available ? 1.0f : 0.5f);
 
         container.addView(view);
