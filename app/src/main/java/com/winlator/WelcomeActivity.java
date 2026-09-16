@@ -8,12 +8,18 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.winlator.core.FileLogger;
 import com.winlator.core.RootAccessHelper;
 
 public class WelcomeActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        try {
+            FileLogger.start(getApplicationContext());
+        }
+        catch (Throwable ignored) {
+        }
         setContentView(R.layout.activity_welcome);
 
         LinearLayout capabilitiesList = findViewById(R.id.capabilitiesList);
