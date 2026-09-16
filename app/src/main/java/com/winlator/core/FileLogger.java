@@ -2,7 +2,6 @@ package com.winlator.core;
 
 import android.content.Context;
 import android.os.Environment;
-import android.os.Process;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -62,7 +61,7 @@ public final class FileLogger {
 
     private static void dump(File target) {
         try {
-            Process process = new ProcessBuilder("logcat", "--pid=" + Process.myPid(), "-v", "time")
+            Process process = new ProcessBuilder("logcat", "--pid=" + android.os.Process.myPid(), "-v", "time")
                     .redirectErrorStream(true)
                     .start();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
