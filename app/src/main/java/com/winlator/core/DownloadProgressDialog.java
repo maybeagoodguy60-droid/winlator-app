@@ -69,7 +69,9 @@ public class DownloadProgressDialog {
     public void setProgress(int progress) {
         if (dialog == null) return;
         progress = Mathf.clamp(progress, 0, 100);
-        ((CircularProgressIndicator)dialog.findViewById(R.id.CircularProgressIndicator)).setProgress(progress);
+        CircularProgressIndicator progressIndicator = dialog.findViewById(R.id.CircularProgressIndicator);
+        progressIndicator.setIndeterminate(false);
+        progressIndicator.setProgress(progress);
         ((TextView)dialog.findViewById(R.id.TVProgress)).setText(progress+"%");
     }
 
