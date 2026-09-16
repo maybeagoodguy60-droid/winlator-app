@@ -21,6 +21,7 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
     private static int pid = -1;
     private EnvVars envVars;
     private Callback<Integer> terminationCallback;
+    private Callback<String> startupFailureCallback;
     private static final Object lock = new Object();
 
     private String cpuGovernor;
@@ -34,6 +35,10 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
         this.launchMode = launchMode;
     }
 
+    public void setStartupFailureCallback(Callback<String> startupFailureCallback) {
+        this.startupFailureCallback = startupFailureCallback;
+    }
+
     @Override
     public void start() {
         synchronized (lock) {
@@ -42,6 +47,9 @@ public class GuestProgramLauncherComponent extends EnvironmentComponent {
                 applyCpuGovernor(cpuGovernor);
             }
             pid = execGuestProgram();
+            if (pid == -1 && startupFailureCallback != null) {
+                startupFailureCallback.call("Could not start the guest process. Check the launch command and that the proot binary is present.");
+            }
         }
     }
 

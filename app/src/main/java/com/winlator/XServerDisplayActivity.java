@@ -1,6 +1,7 @@
 package com.winlator;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.PictureInPictureParams;
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -9,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -48,6 +50,7 @@ import com.winlator.core.EnvVars;
 import com.winlator.core.FileUtils;
 import com.winlator.core.GeneralComponents;
 import com.winlator.linux.LinuxContainer;
+import com.winlator.linux.LaunchValidator;
 import com.winlator.linux.LinuxSessionLauncher;
 import com.winlator.core.KeyValueSet;
 import com.winlator.core.LocaleHelper;
@@ -94,6 +97,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 public class XServerDisplayActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
@@ -124,6 +128,8 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
     private DebugDialog debugDialog;
     public int frameRatingWindowId = -1;
     private String screenEffectProfile;
+    private boolean windowCreated = false;
+    private long guestStartTime = 0;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -170,11 +176,14 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             LinuxContainer linuxContainer = (LinuxContainer) container;
             String rootfsPath = linuxContainer.getRootfsPath();
             if (rootfsPath != null && !rootfsPath.isEmpty()) {
-                File rootfsDir = new File(rootfsPath);
-                if (!rootfsDir.isDirectory() || !new File(rootfsDir, "usr").isDirectory()) {
-                    RootFSInstaller.installToDir(this, rootfsDir);
-                }
-                rootFS = RootFS.of(rootfsDir);
+                rootFS = RootFS.of(new File(rootfsPath));
+            }
+
+            File rootDir = rootFS.getRootDir();
+            List<String> problems = LaunchValidator.validate(this, rootDir, linuxContainer.getLaunchMode());
+            if (!problems.isEmpty()) {
+                showLaunchError(getString(R.string.launch_error) + "\n\n" + LaunchValidator.join(problems));
+                return;
             }
         }
 
@@ -195,6 +204,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
                     xServerView.getRenderer().setCursorVisible(true);
                     preloaderDialog.closeOnUiThread();
                     flags[0] = true;
+                    windowCreated = true;
                 }
 
                 if (flags[1] && window.attributes.isViewable() && window.isDesktopWindow()) {
@@ -357,6 +367,19 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         return preferences;
     }
 
+    private void showLaunchError(String message) {
+        runOnUiThread(() -> {
+            if (isFinishing() || isDestroyed()) return;
+            new AlertDialog.Builder(this)
+                .setTitle(R.string.launch_error)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, (d, w) -> finish())
+                .setOnCancelListener(d -> finish())
+                .setOnDismissListener(d -> finish())
+                .show();
+        });
+    }
+
     private void exit() {
         if (environment != null) environment.stopEnvironmentComponents();
 
@@ -439,7 +462,15 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
         }
 
         guestProgramLauncherComponent.setEnvVars(envVars);
-        guestProgramLauncherComponent.setTerminationCallback((status) -> exit());
+        guestProgramLauncherComponent.setTerminationCallback((status) -> {
+            long elapsed = SystemClock.elapsedRealtime() - guestStartTime;
+            if (!windowCreated && elapsed < 5000) {
+                showLaunchError(getString(R.string.launch_error_guest_stopped, status));
+            }
+            else exit();
+        });
+        guestProgramLauncherComponent.setStartupFailureCallback((message) ->
+            showLaunchError(getString(R.string.launch_error) + "\n\n" + message));
         environment.addComponent(guestProgramLauncherComponent);
 
         if (overrideEnvVars != null) {
@@ -447,6 +478,7 @@ public class XServerDisplayActivity extends AppCompatActivity implements Navigat
             overrideEnvVars = null;
         }
         RootFSInstaller.prepareSocketDirs(rootFS.getRootDir());
+        guestStartTime = SystemClock.elapsedRealtime();
         environment.startEnvironmentComponents();
 
         envVars.clear();
