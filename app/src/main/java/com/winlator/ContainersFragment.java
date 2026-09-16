@@ -15,6 +15,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -31,8 +32,11 @@ import com.winlator.container.ContainerManager;
 import com.winlator.contentdialog.ContentDialog;
 import com.winlator.contentdialog.StorageInfoDialog;
 import com.winlator.core.PreloaderDialog;
+import com.winlator.linux.LaunchValidator;
+import com.winlator.linux.LinuxContainer;
 import com.winlator.xenvironment.RootFS;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -105,11 +109,13 @@ public class ContainersFragment extends Fragment {
             private final ImageView menuButton;
             private final ImageView imageView;
             private final TextView title;
+            private final TextView subtitle;
 
             private ViewHolder(View view) {
                 super(view);
                 this.imageView = view.findViewById(R.id.ImageView);
                 this.title = view.findViewById(R.id.TVTitle);
+                this.subtitle = view.findViewById(R.id.TVSubtitle);
                 this.runButton = view.findViewById(R.id.BTRun);
                 this.menuButton = view.findViewById(R.id.BTMenu);
             }
@@ -129,6 +135,11 @@ public class ContainersFragment extends Fragment {
             final Container item = data.get(position);
             holder.imageView.setImageResource(R.drawable.icon_container);
             holder.title.setText(item.getName());
+            holder.subtitle.setVisibility(View.VISIBLE);
+            String status = buildStatus(item);
+            holder.subtitle.setText(status);
+            holder.subtitle.setTextColor(LaunchValidator.hasRootfs(effectiveRootDir(item))
+                ? 0xFF66BB6A : 0xFFFF8A80);
             holder.runButton.setOnClickListener((view) -> runContainer(item));
             holder.menuButton.setOnClickListener((view) -> showListItemMenu(view, item));
         }
@@ -180,10 +191,42 @@ public class ContainersFragment extends Fragment {
         }
 
         private void runContainer(Container container) {
-            Activity activity = getActivity();
+            MainActivity activity = (MainActivity)getActivity();
+            if (container instanceof LinuxContainer && !LaunchValidator.hasRootfs(effectiveRootDir(container))) {
+                Toast.makeText(activity, R.string.no_rootfs_found, Toast.LENGTH_LONG).show();
+                activity.showFragment(new ContainerDetailFragment(container.id));
+                return;
+            }
             Intent intent = new Intent(activity, XServerDisplayActivity.class);
             intent.putExtra("container_id", container.id);
             activity.startActivity(intent);
+        }
+
+        private File effectiveRootDir(Container container) {
+            if (container instanceof LinuxContainer) {
+                LinuxContainer linuxContainer = (LinuxContainer)container;
+                if (linuxContainer.hasRootfs()) return linuxContainer.getRootfsDir();
+            }
+            return RootFS.find(ContainersFragment.this.getContext()).getRootDir();
+        }
+
+        private String buildStatus(Container container) {
+            StringBuilder status = new StringBuilder();
+            boolean rootfsOk = LaunchValidator.hasRootfs(effectiveRootDir(container));
+            if (container instanceof LinuxContainer) {
+                LinuxContainer linuxContainer = (LinuxContainer)container;
+                String mode;
+                switch (linuxContainer.getLaunchMode()) {
+                    case LinuxContainer.LAUNCH_MODE_CHROOT: mode = "Chroot"; break;
+                    case LinuxContainer.LAUNCH_MODE_PROOT: mode = "Proot"; break;
+                    default: mode = "Auto"; break;
+                }
+                status.insert(0, mode + " · " + linuxContainer.getDesktopEnv());
+            }
+            else {
+                status.append("Wine");
+            }
+            return rootfsOk ? status.toString() : status.insert(0, "Rootfs missing · ").toString();
         }
     }
 }

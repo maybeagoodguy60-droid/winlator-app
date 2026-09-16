@@ -33,7 +33,24 @@ public abstract class GraphicsDrivers {
         return identifier != null && (identifier.equals(ZINK) || identifier.equals(VIRGL) || identifier.equals(GLADIO));
     }
 
+    public static boolean isLinuxCompatible(String identifier) {
+        return identifier != null && (identifier.equals(VORTEK) || identifier.equals(ZINK) || identifier.equals(VIRGL));
+    }
+
     public static String[] getItems(String apiName) {
+        return getItems(apiName, false);
+    }
+
+    public static String[] getItems(String apiName, boolean linuxMode) {
+        if (linuxMode) {
+            if (apiName.equalsIgnoreCase("VULKAN")) {
+                return new String[]{getName(VORTEK)};
+            }
+            else if (apiName.equalsIgnoreCase("OPENGL")) {
+                return new String[]{getName(VIRGL), getName(ZINK)};
+            }
+            else return new String[0];
+        }
         if (apiName.equalsIgnoreCase("VULKAN")) {
             return new String[]{getName(TURNIP), getName(VORTEK)};
         }

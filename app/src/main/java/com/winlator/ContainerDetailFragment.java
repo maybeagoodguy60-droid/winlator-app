@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import java.io.File;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -126,6 +128,7 @@ public class ContainerDetailFragment extends Fragment {
         LinearLayout llGraphicsDriver = view.findViewById(R.id.LLGraphicsDriver);
         graphicsDriverPicker = new GraphicsDriverPicker(
             llGraphicsDriver,
+            true,
             isEditMode() ? container.getGraphicsDriver() : LinuxContainer.DEFAULT_GRAPHICS_DRIVER,
             isEditMode() ? container.getGraphicsDriverConfig() : ""
         );
@@ -409,8 +412,7 @@ public class ContainerDetailFragment extends Fragment {
             String rootfsPath = container.getRootfsPath();
             if (rootfsPath != null && !rootfsPath.isEmpty()) {
                 etRootfsPath.setText(rootfsPath);
-                tvRootfsStatus.setText(getString(R.string.rootfs_validate_ok));
-                tvRootfsStatus.setTextColor(0xFF4CAF50);
+                validateRootfsPath(rootfsPath);
             }
         }
 
@@ -447,6 +449,26 @@ public class ContainerDetailFragment extends Fragment {
             intent.setType("*/*");
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             startActivityForResult(Intent.createChooser(intent, "Select Rootfs"), REQUEST_PICK_ROOTFS);
+        });
+
+        etRootfsPath.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (!etRootfsPath.isEnabled()) return;
+                String path = s.toString().trim();
+                if (path.isEmpty()) {
+                    tvRootfsStatus.setText(getString(R.string.rootfs_select_hint));
+                    tvRootfsStatus.setTextColor(0xFF888888);
+                } else {
+                    validateRootfsPath(path);
+                }
+            }
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
         });
     }
 

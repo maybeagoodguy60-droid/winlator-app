@@ -15,6 +15,10 @@ public class GraphicsDriverPicker {
     private final LinearLayout container;
 
     public GraphicsDriverPicker(LinearLayout container, String selectedGraphicsDriver, String graphicsDriverConfig) {
+        this(container, false, selectedGraphicsDriver, graphicsDriverConfig);
+    }
+
+    public GraphicsDriverPicker(LinearLayout container, boolean linuxMode, String selectedGraphicsDriver, String graphicsDriverConfig) {
         this.container = container;
         final Context context = container.getContext();
         container.removeAllViews();
@@ -25,11 +29,15 @@ public class GraphicsDriverPicker {
         for (int i = 0; i < apiNames.length; i++) {
             final TaggedSelectionBox taggedSelectionBox = new TaggedSelectionBox(context);
             taggedSelectionBox.setLabel(apiNames[i]);
-            taggedSelectionBox.setItems(GraphicsDrivers.getItems(apiNames[i]));
-            taggedSelectionBox.setSelectedItem(GraphicsDrivers.getName(identifiers[i]));
+            String[] items = GraphicsDrivers.getItems(apiNames[i], linuxMode);
+            taggedSelectionBox.setItems(items);
+            String selected = GraphicsDrivers.getName(identifiers[i]);
+            if (linuxMode && !GraphicsDrivers.isLinuxCompatible(identifiers[i])) selected = items.length > 0 ? items[0] : "";
+            taggedSelectionBox.setSelectedItem(selected);
             taggedSelectionBox.setTag(configs[i].toString());
             taggedSelectionBox.setOnButtonClickListener(() -> {
                 final String graphicsDriver = StringUtils.parseIdentifier(taggedSelectionBox.getSelectedItem());
+                if (linuxMode && !GraphicsDrivers.isLinuxCompatible(graphicsDriver)) return;
                 showGraphicsDriverConfigDialog(graphicsDriver, taggedSelectionBox);
             });
             container.addView(taggedSelectionBox);
